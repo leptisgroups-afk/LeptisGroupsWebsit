@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "../components/Navbar";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import Footer from "@/components/Footer";
+import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
 
 // Load Poppins font
 const poppins = Poppins({
@@ -20,10 +21,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${poppins.variable} font-sans antialiased`}>
-        <AnnouncementBar />
-        <Navbar />
-        {children}
-        <Footer />
+        <SiteSettingsProvider>
+          <AnnouncementBar />
+          <Navbar />
+          {children}
+          <Footer />
+        </SiteSettingsProvider>
       </body>
     </html>
   );

@@ -1,0 +1,14 @@
+# Root gitignore
+leptis-groups-main/env/
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+**/*.pyc
+**/__pycache__/
+**/*.bak
+**/db.sqlite3
+.DS_Store
+*.pem
+.env*
+.vercel
