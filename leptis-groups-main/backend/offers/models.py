@@ -140,6 +140,7 @@ class SiteSettings(models.Model):
     about_team_img = models.ImageField(upload_to="settings/", blank=True, null=True)
     home_about_img = models.ImageField(upload_to="settings/", blank=True, null=True)
     consult_img = models.ImageField(upload_to="settings/", blank=True, null=True)
+    careers_bg = models.ImageField(upload_to="settings/", blank=True, null=True)
 
     class Meta:
         verbose_name = "Site Settings"

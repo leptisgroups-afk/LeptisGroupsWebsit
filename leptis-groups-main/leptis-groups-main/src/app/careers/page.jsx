@@ -7,7 +7,7 @@ import { FaUser, FaPhone, FaEnvelope, FaFilePdf, FaPen, FaBuilding, FaAward, FaB
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-import { getApiUrl } from "@/data/config";
+import { getApiUrl, getCleanImageUrl } from "@/data/config";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const Careers = () => {
@@ -88,7 +88,7 @@ const Careers = () => {
                 <section
                     className="relative w-full h-[280px] sm:h-[320px] flex items-center justify-start text-white overflow-hidden"
                     style={{
-                        backgroundImage: `linear-gradient(to right, rgba(7, 11, 17, 0.98) 30%, rgba(15, 23, 42, 0.7) 100%), url('${settings?.hero_bg_url || "/ship-bg.jpg"}')`,
+                        backgroundImage: `linear-gradient(to right, rgba(7, 11, 17, 0.98) 30%, rgba(15, 23, 42, 0.7) 100%), url('${getCleanImageUrl(settings?.careers_bg_url) || getCleanImageUrl(settings?.hero_bg_url) || "/ship-bg.jpg"}')`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                         backgroundRepeat: "no-repeat",

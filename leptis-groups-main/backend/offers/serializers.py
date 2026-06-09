@@ -73,6 +73,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     about_team_img_url = serializers.SerializerMethodField()
     home_about_img_url = serializers.SerializerMethodField()
     consult_img_url = serializers.SerializerMethodField()
+    careers_bg_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SiteSettings
@@ -100,6 +101,12 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         if obj.consult_img:
             request = self.context.get("request")
             return request.build_absolute_uri(obj.consult_img.url) if request else obj.consult_img.url
+        return None
+
+    def get_careers_bg_url(self, obj):
+        if obj.careers_bg:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.careers_bg.url) if request else obj.careers_bg.url
         return None
 
 
