@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from .models import (
-    CareerApplication, ContactMessage, Offer, OfferPDF, SiteSettings,
+    CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
     BrandLogo, Project, ProjectImage, TeamMember
 )
 
@@ -45,17 +45,17 @@ class ContactMessageAdmin(admin.ModelAdmin):
 
 
 # -----------------------------
-# Offer PDF Inline (multiple PDFs per Offer)
+# Event PDF Inline (multiple PDFs per Event)
 # -----------------------------
-class OfferPDFInline(admin.TabularInline):
-    model = OfferPDF
+class EventPDFInline(admin.TabularInline):
+    model = EventPDF
     extra = 0
     fields = ("pdf_file", "thumbnail", "preview_pdf")
     readonly_fields = ("preview_pdf",)
 
     def preview_pdf(self, obj):
         if not obj.pk:
-            return "Save the offer first to see PDFs."
+            return "Save the event first to see PDFs."
         if obj.thumbnail:
             return format_html(
                 '<a href="{}" target="_blank">'
@@ -68,14 +68,14 @@ class OfferPDFInline(admin.TabularInline):
 
 
 # -----------------------------
-# Offer Admin
+# Event Admin
 # -----------------------------
-@admin.register(Offer)
-class OfferAdmin(admin.ModelAdmin):
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "category", "created_at", "pdf_previews")
     list_filter = ("category",)
     search_fields = ("title",)
-    inlines = [OfferPDFInline]
+    inlines = [EventPDFInline]
 
     class Media:
         css = {"all": ("admin/css/custom_admin.css",)}
@@ -133,7 +133,8 @@ class ProjectImageInline(admin.TabularInline):
 # -----------------------------
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "created_at", "preview_image")
+    list_display = ("id", "title", "category", "created_at", "preview_image")
+    list_filter = ("category",)
     search_fields = ("title",)
     inlines = [ProjectImageInline]
 

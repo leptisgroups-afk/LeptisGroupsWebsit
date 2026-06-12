@@ -3,9 +3,9 @@ from django.utils.html import format_html
 import time
 
 # -----------------------------
-# Offer Model
+# Event Model
 # -----------------------------
-class Offer(models.Model):
+class Event(models.Model):
     CATEGORY_CHOICES = [
         ("dubai_lassi_home", "DUBAI - LASSI HOME SHOP"),
         ("rak_hamrah", "RAK - LEPTIS SHOPPING CENTER AL HAMRAH"),
@@ -16,7 +16,7 @@ class Offer(models.Model):
 
     title = models.CharField(max_length=255)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
-    expire_date = models.DateTimeField(blank=True, null=True, db_index=True)  # Expiration date and time for offers
+    expire_date = models.DateTimeField(blank=True, null=True, db_index=True)  # Expiration date and time for events
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -24,18 +24,18 @@ class Offer(models.Model):
 
 
 # -----------------------------
-# Offer PDF Model
+# Event PDF Model
 # -----------------------------
-class OfferPDF(models.Model):
-    offer = models.ForeignKey(
-        Offer, related_name="pdfs", on_delete=models.CASCADE
+class EventPDF(models.Model):
+    event = models.ForeignKey(
+        Event, related_name="pdfs", on_delete=models.CASCADE
     )
-    pdf_file = models.FileField(upload_to="offers/pdfs/")  # PDF file
-    thumbnail = models.ImageField(upload_to="offers/thumbnails/", blank=True, null=True)  # optional preview
+    pdf_file = models.FileField(upload_to="events/pdfs/")  # PDF file
+    thumbnail = models.ImageField(upload_to="events/thumbnails/", blank=True, null=True)  # optional preview
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"PDF for {self.offer.title}"
+        return f"PDF for {self.event.title}"
 
     def preview_pdf(self):
         """
@@ -180,7 +180,20 @@ class BrandLogo(models.Model):
 # Project Model
 # -----------------------------
 class Project(models.Model):
+    CATEGORY_CHOICES = [
+        ("dubai_lassi_home", "DUBAI - LASSI HOME SHOP"),
+        ("rak_hamrah", "RAK - LEPTIS SHOPPING CENTER AL HAMRAH"),
+        ("rak_marjan", "RAK - LEPTIS SUPERMARKET MARJAN"),
+        ("alain_spicy", "AL AIN - SPICY VILLAGE AL AIN"),
+        ("alain_leptis", "AL AIN - LEPTIS SHOPPING CENTER AL AIN"),
+    ]
+
     title = models.CharField(max_length=255)
+    category = models.CharField(
+        max_length=50, 
+        choices=CATEGORY_CHOICES, 
+        default="dubai_lassi_home"
+    )
     main_image = models.ImageField(upload_to="projects/")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -224,11 +237,11 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 import os
 
-@receiver(post_delete, sender=OfferPDF)
+@receiver(post_delete, sender=EventPDF)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     """
     Deletes PDF and thumbnail files from disk when corresponding
-    OfferPDF object is deleted.
+    EventPDF object is deleted.
     """
     if instance.pdf_file:
         if os.path.isfile(instance.pdf_file.path):

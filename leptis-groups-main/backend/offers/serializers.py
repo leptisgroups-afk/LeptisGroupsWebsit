@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    CareerApplication, ContactMessage, Offer, OfferPDF, SiteSettings,
+    CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
     BrandLogo, Project, ProjectImage, TeamMember
 )
 
@@ -8,14 +8,14 @@ from .models import (
 
 
 # -------------------------------------------------------------------
-# OFFER IMAGE SERIALIZER
+# EVENT IMAGE SERIALIZER
 # -------------------------------------------------------------------
-class OfferPDFSerializer(serializers.ModelSerializer):
+class EventPDFSerializer(serializers.ModelSerializer):
     pdf_url = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
 
     class Meta:
-        model = OfferPDF
+        model = EventPDF
         fields = ["id", "pdf_file", "thumbnail", "pdf_url", "thumbnail_url"]
 
     def get_pdf_url(self, obj):
@@ -32,13 +32,13 @@ class OfferPDFSerializer(serializers.ModelSerializer):
 
 
 # -------------------------------------------------------------------
-# OFFER SERIALIZER
+# EVENT SERIALIZER
 # -------------------------------------------------------------------
-class OfferSerializer(serializers.ModelSerializer):
-    pdfs = OfferPDFSerializer(many=True, read_only=True)
+class EventSerializer(serializers.ModelSerializer):
+    pdfs = EventPDFSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Offer
+        model = Event
         fields = ["id", "title", "category", "expire_date", "created_at", "pdfs"]
 
 
@@ -163,7 +163,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ["id", "title", "main_image", "main_image_url", "images", "created_at"]
+        fields = ["id", "title", "category", "main_image", "main_image_url", "images", "created_at"]
 
     def get_main_image_url(self, obj):
         if obj.main_image:

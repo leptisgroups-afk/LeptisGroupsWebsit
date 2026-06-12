@@ -35,14 +35,14 @@ class IsAdminOrCreateOnly(permissions.BasePermission):
 
 
 from .models import (
-    CareerApplication, ContactMessage, Offer, OfferPDF, SiteSettings,
+    CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
     BrandLogo, Project, ProjectImage, TeamMember
 )
 from .serializers import (
     CareerApplicationSerializer,
     ContactMessageSerializer,
-    OfferSerializer,
-    OfferPDFSerializer,
+    EventSerializer,
+    EventPDFSerializer,
     SiteSettingsSerializer,
     BrandLogoSerializer,
     ProjectSerializer,
@@ -52,74 +52,74 @@ from .serializers import (
 
 
 # -------------------------------------------------------------------
-# OFFER VIEWSET (MULTIPLE PDFs + OPTIONAL THUMBNAILS)
+# EVENT VIEWSET (MULTIPLE PDFs + OPTIONAL THUMBNAILS)
 # -------------------------------------------------------------------
-class OfferViewSet(viewsets.ModelViewSet):
+class EventViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
-    serializer_class = OfferSerializer
+    serializer_class = EventSerializer
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_queryset(self):
-        # Automatically delete expired offers
+        # Automatically delete expired events
         from django.utils import timezone
-        expired_offers = Offer.objects.filter(expire_date__lt=timezone.now())
-        if expired_offers.exists():
-            expired_offers.delete()
-        return Offer.objects.all().prefetch_related("pdfs").order_by("-created_at")
+        expired_events = Event.objects.filter(expire_date__lt=timezone.now())
+        if expired_events.exists():
+            expired_events.delete()
+        return Event.objects.all().prefetch_related("pdfs").order_by("-created_at")
 
     def create(self, request, *args, **kwargs):
-        serializer = OfferSerializer(data=request.data, context={"request": request})
+        serializer = EventSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        offer = serializer.save()
+        event = serializer.save()
 
         pdf_files = request.FILES.getlist("pdfs")
         thumbnail = request.FILES.get("thumbnail")
         for i, pdf in enumerate(pdf_files):
             if i == 0 and thumbnail:
-                OfferPDF.objects.create(offer=offer, pdf_file=pdf, thumbnail=thumbnail)
+                EventPDF.objects.create(event=event, pdf_file=pdf, thumbnail=thumbnail)
             else:
-                OfferPDF.objects.create(offer=offer, pdf_file=pdf)
+                EventPDF.objects.create(event=event, pdf_file=pdf)
 
         return Response({
-            "message": "Offer created successfully",
-            "offer": OfferSerializer(offer, context={"request": request}).data
+            "message": "Event created successfully",
+            "event": EventSerializer(event, context={"request": request}).data
         }, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = OfferSerializer(
+        serializer = EventSerializer(
             instance, data=request.data, partial=partial, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        offer = serializer.save()
+        event = serializer.save()
 
         pdf_files = request.FILES.getlist("pdfs")
         thumbnail = request.FILES.get("thumbnail")
         for i, pdf in enumerate(pdf_files):
             if i == 0 and thumbnail:
-                OfferPDF.objects.create(offer=offer, pdf_file=pdf, thumbnail=thumbnail)
+                EventPDF.objects.create(event=event, pdf_file=pdf, thumbnail=thumbnail)
             else:
-                OfferPDF.objects.create(offer=offer, pdf_file=pdf)
+                EventPDF.objects.create(event=event, pdf_file=pdf)
 
         # If only thumbnail is updated for the existing PDF
         if thumbnail and not pdf_files:
-            first_pdf = offer.pdfs.first()
+            first_pdf = event.pdfs.first()
             if first_pdf:
                 first_pdf.thumbnail = thumbnail
                 first_pdf.save()
 
         return Response({
-            "message": "Offer updated successfully",
-            "offer": OfferSerializer(offer, context={"request": request}).data
+            "message": "Event updated successfully",
+            "event": EventSerializer(event, context={"request": request}).data
         }, status=status.HTTP_200_OK)
 
 
     @action(detail=True, methods=["get"])
     def pdfs(self, request, pk=None):
-        offer = self.get_object()
-        pdf_files = offer.pdfs.all()
-        serializer = OfferPDFSerializer(pdf_files, many=True, context={"request": request})
+        event = self.get_object()
+        pdf_files = event.pdfs.all()
+        serializer = EventPDFSerializer(pdf_files, many=True, context={"request": request})
         return Response({"pdfs": serializer.data})
 
 # -------------------------------------------------------------------

@@ -18,7 +18,7 @@ export default function AdminDashboard() {
     const { refreshSettings } = useSiteSettings();
     const APPLICATIONS_URL = getApiUrl("/api/career-applications/");
     const MESSAGES_URL = getApiUrl("/api/contact-messages/");
-    const OFFERS_URL = getApiUrl("/api/offers/");
+    const EVENTS_URL = getApiUrl("/api/events/");
     const BRAND_LOGOS_URL = getApiUrl("/api/brand-logos/");
     const PROJECTS_URL = getApiUrl("/api/projects/");
     const PROJECT_IMAGES_URL = getApiUrl("/api/project-images/");
@@ -48,13 +48,13 @@ export default function AdminDashboard() {
     };
 
     // Navigation state
-    const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard", "applications", "messages", "offers", "settings", "brands", "projects", "team"
+    const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard", "applications", "messages", "events", "settings", "brands", "projects", "team"
 
     // Data states
     const [settings, setSettings] = useState(null);
     const [applications, setApplications] = useState([]);
     const [messages, setMessages] = useState([]);
-    const [offers, setOffers] = useState([]);
+    const [events, setEvents] = useState([]);
     const [brandLogos, setBrandLogos] = useState([]);
     const [projects, setProjects] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
@@ -84,37 +84,37 @@ export default function AdminDashboard() {
     };
 
     // Offers CRUD State
-    const [showAddOfferForm, setShowAddOfferForm] = useState(false);
-    const [newOffer, setNewOffer] = useState({
+    const [showAddEventForm, setShowAddEventForm] = useState(false);
+    const [newEvent, setNewEvent] = useState({
         title: "",
         category: "dubai_lassi_home",
         expire_date: "",
         pdfs: [],
         thumbnail: null
     });
-    const [offerSubmitStatus, setOfferSubmitStatus] = useState("");
-    const [offerSubmitStatusType, setOfferSubmitStatusType] = useState("");
-    const offerPdfInputRef = useRef(null);
-    const offerThumbnailInputRef = useRef(null);
-    const [offerThumbnailErrors, setOfferThumbnailErrors] = useState({});
+    const [eventSubmitStatus, setEventSubmitStatus] = useState("");
+    const [eventSubmitStatusType, setEventSubmitStatusType] = useState("");
+    const eventPdfInputRef = useRef(null);
+    const eventThumbnailInputRef = useRef(null);
+    const [eventThumbnailErrors, setEventThumbnailErrors] = useState({});
 
     // Edit Offer State
-    const [editingOfferId, setEditingOfferId] = useState(null);
-    const [editingOfferData, setEditingOfferData] = useState({
+    const [editingEventId, setEditingEventId] = useState(null);
+    const [editingEventData, setEditingEventData] = useState({
         title: "",
         category: "",
         expire_date: ""
     });
 
     // Create Offer Date/Time split states
-    const [newOfferDate, setNewOfferDate] = useState("");
-    const [newOfferHour, setNewOfferHour] = useState("23");
-    const [newOfferMinute, setNewOfferMinute] = useState("59");
+    const [newEventDate, setNewEventDate] = useState("");
+    const [newEventHour, setNewEventHour] = useState("23");
+    const [newEventMinute, setNewEventMinute] = useState("59");
 
     // Edit Offer Date/Time split states
-    const [editingOfferDate, setEditingOfferDate] = useState("");
-    const [editingOfferHour, setEditingOfferHour] = useState("23");
-    const [editingOfferMinute, setEditingOfferMinute] = useState("59");
+    const [editingEventDate, setEditingEventDate] = useState("");
+    const [editingEventHour, setEditingEventHour] = useState("23");
+    const [editingEventMinute, setEditingEventMinute] = useState("59");
 
     // Brand Logos CRUD State
     const [newBrand, setNewBrand] = useState({ name: "", image: null });
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
     const brandFileInputRef = useRef(null);
 
     // Projects CRUD State
-    const [newProject, setNewProject] = useState({ title: "", main_image: null });
+    const [newProject, setNewProject] = useState({ title: "", category: "dubai_lassi_home", main_image: null });
     const [projectSubmitStatus, setProjectSubmitStatus] = useState("");
     const projectFileInputRef = useRef(null);
 
@@ -328,11 +328,11 @@ export default function AdminDashboard() {
                 }
             };
 
-            const [settRes, appRes, msgRes, offRes, brandRes, projRes, teamRes] = await Promise.all([
+            const [settRes, appRes, msgRes, evRes, brandRes, projRes, teamRes] = await Promise.all([
                 getOrFallback(SETTINGS_URL, null),
                 getOrFallback(APPLICATIONS_URL, []),
                 getOrFallback(MESSAGES_URL, []),
-                getOrFallback(OFFERS_URL, []),
+                getOrFallback(EVENTS_URL, []),
                 getOrFallback(BRAND_LOGOS_URL, []),
                 getOrFallback(PROJECTS_URL, []),
                 getOrFallback(TEAM_MEMBERS_URL, [])
@@ -351,7 +351,7 @@ export default function AdminDashboard() {
             }
             setApplications(appRes);
             setMessages(msgRes);
-            setOffers(offRes);
+            setEvents(evRes);
             setBrandLogos(brandRes);
             setProjects(projRes);
             setTeamMembers(teamRes);
@@ -514,127 +514,127 @@ export default function AdminDashboard() {
     };
 
     // --- OFFERS CRUD CONTROLS ---
-    const handleNewOfferChange = (e) => {
+    const handleNewEventChange = (e) => {
         const { name, value, files } = e.target;
         if (files) {
-            setNewOffer(prev => ({
+            setNewEvent(prev => ({
                 ...prev,
                 pdfs: Array.from(files)
             }));
         } else {
-            setNewOffer(prev => ({
+            setNewEvent(prev => ({
                 ...prev,
                 [name]: value
             }));
         }
     };
 
-    const handleNewOfferThumbnailChange = (e) => {
+    const handleNewEventThumbnailChange = (e) => {
         const { files } = e.target;
         if (files && files[0]) {
-            setNewOffer(prev => ({
+            setNewEvent(prev => ({
                 ...prev,
                 thumbnail: files[0]
             }));
-            handleSelectedFileSpecs("offer", files[0]);
+            handleSelectedFileSpecs("event", files[0]);
         }
     };
 
-    const handleCreateOffer = async (e) => {
+    const handleCreateEvent = async (e) => {
         e.preventDefault();
-        setOfferSubmitStatus("Creating offer...");
-        setOfferSubmitStatusType("info");
+        setEventSubmitStatus("Creating event...");
+        setEventSubmitStatusType("info");
 
-        if (newOffer.pdfs.length === 0) {
-            setOfferSubmitStatus("Error: Please select at least one PDF file.");
-            setOfferSubmitStatusType("error");
+        if (newEvent.pdfs.length === 0) {
+            setEventSubmitStatus("Error: Please select at least one PDF file.");
+            setEventSubmitStatusType("error");
             return;
         }
 
         const data = new FormData();
-        data.append("title", newOffer.title);
-        data.append("category", newOffer.category);
-        if (newOfferDate) {
-            const localDate = new Date(`${newOfferDate}T${newOfferHour}:${newOfferMinute}:00`);
+        data.append("title", newEvent.title);
+        data.append("category", newEvent.category);
+        if (newEventDate) {
+            const localDate = new Date(`${newEventDate}T${newEventHour}:${newEventMinute}:05`);
             if (!isNaN(localDate.getTime())) {
                 data.append("expire_date", localDate.toISOString());
             }
         }
         
-        newOffer.pdfs.forEach(file => {
+        newEvent.pdfs.forEach(file => {
             data.append("pdfs", file);
         });
 
-        if (newOffer.thumbnail) {
-            data.append("thumbnail", newOffer.thumbnail);
+        if (newEvent.thumbnail) {
+            data.append("thumbnail", newEvent.thumbnail);
         }
 
         try {
-            console.log("[DEBUG] Creating offer with title:", newOffer.title);
+            console.log("[DEBUG] Creating event with title:", newEvent.title);
             const headersConfig = getAuthHeaders({ "Content-Type": "multipart/form-data" });
             console.log("[DEBUG] Create Headers Config:", headersConfig);
-            const res = await axios.post(OFFERS_URL, data, headersConfig);
+            const res = await axios.post(EVENTS_URL, data, headersConfig);
             console.log("[DEBUG] Create Success:", res.data);
 
-            setOfferSubmitStatus("Offer created and activated successfully!");
-            setOfferSubmitStatusType("success");
+            setEventSubmitStatus("Event created and activated successfully!");
+            setEventSubmitStatusType("success");
 
-            setNewOffer({
+            setNewEvent({
                 title: "",
                 category: "dubai_lassi_home",
                 expire_date: "",
                 pdfs: [],
                 thumbnail: null
             });
-            setNewOfferDate("");
-            setNewOfferHour("23");
-            setNewOfferMinute("59");
+            setNewEventDate("");
+            setNewEventHour("23");
+            setNewEventMinute("59");
 
-            if (offerPdfInputRef.current) offerPdfInputRef.current.value = "";
-            if (offerThumbnailInputRef.current) offerThumbnailInputRef.current.value = "";
-            setShowAddOfferForm(false);
+            if (eventPdfInputRef.current) eventPdfInputRef.current.value = "";
+            if (eventThumbnailInputRef.current) eventThumbnailInputRef.current.value = "";
+            setShowAddEventForm(false);
             
-            setSelectedImageSpecs(prev => ({ ...prev, offer: null }));
+            setSelectedImageSpecs(prev => ({ ...prev, event: null }));
             fetchData();
             setTimeout(() => {
-                setOfferSubmitStatus("");
-                setOfferSubmitStatusType("");
+                setEventSubmitStatus("");
+                setEventSubmitStatusType("");
             }, 5000);
         } catch (err) {
-            console.error("[DEBUG] Create offer error:", err);
+            console.error("[DEBUG] Create event error:", err);
             const errMsg = err.response && err.response.data 
                 ? JSON.stringify(err.response.data) 
                 : err.message;
-            setOfferSubmitStatus(`Failed to create offer. Error: ${errMsg}`);
-            setOfferSubmitStatusType("error");
+            setEventSubmitStatus(`Failed to create event. Error: ${errMsg}`);
+            setEventSubmitStatusType("error");
         }
     };
 
-    const handleDeleteOffer = async (offerId) => {
-        if (!confirm("Are you sure you want to delete this offer?")) return;
+    const handleDeleteEvent = async (eventId) => {
+        if (!confirm("Are you sure you want to delete this event?")) return;
         try {
-            console.log("[DEBUG] Deleting offer ID:", offerId);
+            console.log("[DEBUG] Deleting event ID:", eventId);
             const headersConfig = getAuthHeaders();
             console.log("[DEBUG] Delete Headers Config:", headersConfig);
-            const res = await axios.delete(`${OFFERS_URL}${offerId}/`, headersConfig);
+            const res = await axios.delete(`${EVENTS_URL}${eventId}/`, headersConfig);
             console.log("[DEBUG] Delete Success:", res.data);
             fetchData();
         } catch (err) {
-            console.error("[DEBUG] Delete offer error:", err);
+            console.error("[DEBUG] Delete event error:", err);
             const errMsg = err.response && err.response.data 
                 ? JSON.stringify(err.response.data) 
                 : err.message;
-            alert(`Failed to delete offer. Error: ${errMsg}`);
+            alert(`Failed to delete event. Error: ${errMsg}`);
         }
     };
 
-    const handleStartEditOffer = (offer) => {
-        setEditingOfferId(offer.id);
+    const handleStartEditEvent = (event) => {
+        setEditingEventId(event.id);
         let dateVal = "";
         let hourVal = "23";
         let minVal = "59";
-        if (offer.expire_date) {
-            const date = new Date(offer.expire_date);
+        if (event.expire_date) {
+            const date = new Date(event.expire_date);
             if (!isNaN(date.getTime())) {
                 const pad = (num) => String(num).padStart(2, '0');
                 dateVal = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -642,38 +642,38 @@ export default function AdminDashboard() {
                 minVal = pad(date.getMinutes());
             }
         }
-        setEditingOfferData({
-            title: offer.title,
-            category: offer.category,
-            expire_date: offer.expire_date || ""
+        setEditingEventData({
+            title: event.title,
+            category: event.category,
+            expire_date: event.expire_date || ""
         });
-        setEditingOfferDate(dateVal);
-        setEditingOfferHour(hourVal);
-        setEditingOfferMinute(minVal);
+        setEditingEventDate(dateVal);
+        setEditingEventHour(hourVal);
+        setEditingEventMinute(minVal);
     };
 
-    const handleCancelEditOffer = () => {
-        setEditingOfferId(null);
+    const handleCancelEditEvent = () => {
+        setEditingEventId(null);
     };
 
-    const handleSaveEditOffer = async (offerId) => {
+    const handleSaveEditEvent = async (eventId) => {
         let expireDateTime = null;
-        if (editingOfferDate) {
-            const localDate = new Date(`${editingOfferDate}T${editingOfferHour}:${editingOfferMinute}:00`);
+        if (editingEventDate) {
+            const localDate = new Date(`${editingEventDate}T${editingEventHour}:${editingEventMinute}:00`);
             if (!isNaN(localDate.getTime())) {
                 expireDateTime = localDate.toISOString();
             }
         }
         try {
-            await axios.patch(`${OFFERS_URL}${offerId}/`, {
-                ...editingOfferData,
+            await axios.patch(`${EVENTS_URL}${eventId}/`, {
+                ...editingEventData,
                 expire_date: expireDateTime
             }, getAuthHeaders());
-            setEditingOfferId(null);
+            setEditingEventId(null);
             fetchData();
         } catch (err) {
-            console.error("Edit offer error:", err);
-            alert("Failed to save offer changes.");
+            console.error("Edit event error:", err);
+            alert("Failed to save event changes.");
         }
     };
 
@@ -758,12 +758,13 @@ export default function AdminDashboard() {
 
         const data = new FormData();
         data.append("title", newProject.title);
+        data.append("category", newProject.category || "dubai_lassi_home");
         data.append("main_image", newProject.main_image);
 
         try {
             await axios.post(PROJECTS_URL, data, getAuthHeaders({ "Content-Type": "multipart/form-data" }));
             setProjectSubmitStatus("Project created successfully!");
-            setNewProject({ title: "", main_image: null });
+            setNewProject({ title: "", category: "dubai_lassi_home", main_image: null });
             if (projectFileInputRef.current) projectFileInputRef.current.value = "";
             setSelectedImageSpecs(prev => ({ ...prev, project: null }));
             fetchData();
@@ -928,7 +929,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const isOfferExpired = (expireDate) => {
+    const isEventExpired = (expireDate) => {
         if (!expireDate) return false;
         return new Date(expireDate) < new Date();
     };
@@ -987,9 +988,9 @@ export default function AdminDashboard() {
                                 <FaCalendarAlt />
                             </div>
                             <div>
-                                <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Active Offers</span>
+                                <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Active Events</span>
                                 <h3 className="text-2xl font-black text-white mt-1 text-gradient">
-                                    {offers.filter(o => !isOfferExpired(o.expire_date)).length} Active
+                                    {events.filter(o => !isEventExpired(o.expire_date)).length} Active
                                 </h3>
                             </div>
                         </div>
@@ -1164,25 +1165,25 @@ export default function AdminDashboard() {
         );
     };
 
-    const renderOffersTab = () => {
+    const renderEventsTab = () => {
         return (
             <div className="space-y-8 text-left">
                 {/* Status Message */}
-                {offerSubmitStatus && (
+                {eventSubmitStatus && (
                     <div className={`p-4 rounded-xl text-sm font-bold border transition-all duration-300 ${
-                        offerSubmitStatusType === "success" 
+                        eventSubmitStatusType === "success" 
                             ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-400" 
-                            : offerSubmitStatusType === "error" 
+                            : eventSubmitStatusType === "error" 
                             ? "bg-rose-950/20 border-rose-500/30 text-rose-400" 
                             : "bg-blue-950/20 border-blue-500/30 text-blue-400"
                     }`}>
-                        {offerSubmitStatus}
+                        {eventSubmitStatus}
                     </div>
                 )}
 
                 {/* Form to Add New Offer */}
                 <AnimatePresence>
-                    {showAddOfferForm && (
+                    {showAddEventForm && (
                         <motion.div 
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
@@ -1192,25 +1193,25 @@ export default function AdminDashboard() {
                         >
                             <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
                                 <div className="flex justify-between items-center pb-4 border-b border-slate-800 mb-6">
-                                    <h4 className="font-extrabold text-white text-lg">Create & Activate New Offer</h4>
+                                    <h4 className="font-extrabold text-white text-lg">Create & Activate New Event</h4>
                                     <button 
-                                        onClick={() => setShowAddOfferForm(false)} 
+                                        onClick={() => setShowAddEventForm(false)} 
                                         className="text-slate-400 hover:text-white transition duration-200 text-xl"
                                     >
                                         <FaTimes />
                                     </button>
                                 </div>
 
-                                <form onSubmit={handleCreateOffer} className="space-y-6">
+                                <form onSubmit={handleCreateEvent} className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Offer Title</label>
+                                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Event Title</label>
                                             <input
                                                 type="text"
                                                 name="title"
                                                 placeholder="e.g. Weekend Mega Sale"
-                                                value={newOffer.title}
-                                                onChange={handleNewOfferChange}
+                                                value={newEvent.title}
+                                                onChange={handleNewEventChange}
                                                 className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
                                                 required
                                             />
@@ -1220,8 +1221,8 @@ export default function AdminDashboard() {
                                             <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Branch Location</label>
                                             <select
                                                 name="category"
-                                                value={newOffer.category}
-                                                onChange={handleNewOfferChange}
+                                                value={newEvent.category}
+                                                onChange={handleNewEventChange}
                                                 className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
                                                 required
                                             >
@@ -1239,18 +1240,18 @@ export default function AdminDashboard() {
                                                 <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Expire Date</label>
                                                 <input
                                                     type="date"
-                                                    value={newOfferDate}
-                                                    onChange={(e) => setNewOfferDate(e.target.value)}
+                                                    value={newEventDate}
+                                                    onChange={(e) => setNewEventDate(e.target.value)}
                                                     className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Hour</label>
                                                 <select
-                                                    value={newOfferHour}
-                                                    onChange={(e) => setNewOfferHour(e.target.value)}
+                                                    value={newEventHour}
+                                                    onChange={(e) => setNewEventHour(e.target.value)}
                                                     className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
-                                                    disabled={!newOfferDate}
+                                                    disabled={!newEventDate}
                                                 >
                                                     {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(h => (
                                                         <option key={h} value={h} className="bg-slate-950 text-white">
@@ -1262,10 +1263,10 @@ export default function AdminDashboard() {
                                             <div>
                                                 <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Minute</label>
                                                 <select
-                                                    value={newOfferMinute}
-                                                    onChange={(e) => setNewOfferMinute(e.target.value)}
+                                                    value={newEventMinute}
+                                                    onChange={(e) => setNewEventMinute(e.target.value)}
                                                     className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
-                                                    disabled={!newOfferDate}
+                                                    disabled={!newEventDate}
                                                 >
                                                     {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(m => (
                                                         <option key={m} value={m} className="bg-slate-950 text-white">{m}</option>
@@ -1275,23 +1276,23 @@ export default function AdminDashboard() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Attach PDF Catalogue(s)</label>
+                                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Attach PDF Event Details</label>
                                             <div className="relative border-2 border-dashed border-slate-800 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-500/5 transition bg-slate-950/40 flex items-center justify-center cursor-pointer text-center group">
                                                 <input
                                                     type="file"
                                                     name="pdfs"
                                                     accept=".pdf"
                                                     multiple
-                                                    onChange={handleNewOfferChange}
+                                                    onChange={handleNewEventChange}
                                                     className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    ref={offerPdfInputRef}
+                                                    ref={eventPdfInputRef}
                                                     required
                                                 />
                                                 <div className="flex items-center gap-2 text-slate-400 text-sm font-bold truncate max-w-full px-2 group-hover:text-white transition duration-200">
                                                     <FaUpload className="flex-shrink-0 text-blue-400" />
                                                     <span className="truncate">
-                                                        {newOffer.pdfs.length > 0 
-                                                            ? `${newOffer.pdfs.length} files selected` 
+                                                        {newEvent.pdfs.length > 0 
+                                                            ? `${newEvent.pdfs.length} files selected` 
                                                             : "Upload PDF documents"
                                                         }
                                                     </span>
@@ -1306,26 +1307,26 @@ export default function AdminDashboard() {
                                                     type="file"
                                                     name="thumbnail"
                                                     accept="image/*"
-                                                    onChange={handleNewOfferThumbnailChange}
+                                                    onChange={handleNewEventThumbnailChange}
                                                     className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    ref={offerThumbnailInputRef}
+                                                    ref={eventThumbnailInputRef}
                                                 />
                                                 <div className="flex items-center gap-2 text-slate-400 text-sm font-bold truncate max-w-full px-2 group-hover:text-white transition duration-200">
                                                     <FaUpload className="flex-shrink-0 text-blue-400" />
                                                     <span className="truncate">
-                                                        {newOffer.thumbnail ? newOffer.thumbnail.name : "Upload cover photo"}
+                                                        {newEvent.thumbnail ? newEvent.thumbnail.name : "Upload cover photo"}
                                                     </span>
                                                 </div>
                                             </div>
                                             <p className="text-[10px] text-slate-500 font-semibold mt-1.5 text-left">Recommended: Cover thumbnail image under 2MB.</p>
-                                            {renderSelectedImageSpecs("offer", 2048)}
+                                            {renderSelectedImageSpecs("event", 2048)}
                                         </div>
                                     </div>
 
                                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/80">
                                         <button
                                             type="button"
-                                            onClick={() => setShowAddOfferForm(false)}
+                                            onClick={() => setShowAddEventForm(false)}
                                             className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition duration-300"
                                         >
                                             Cancel
@@ -1334,7 +1335,7 @@ export default function AdminDashboard() {
                                             type="submit"
                                             className="px-6 py-3 bg-[#194a9a] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-blue-900/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
                                         >
-                                            Activate Offer
+                                            Activate Event
                                         </button>
                                     </div>
                                 </form>
@@ -1346,25 +1347,25 @@ export default function AdminDashboard() {
                 {/* Main Offers Table */}
                 <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
                     <div className="flex justify-between items-center pb-4 border-b border-slate-800/80 mb-6">
-                        <h4 className="font-extrabold text-white text-lg">Active & Expired Catalogues</h4>
-                        {!showAddOfferForm && (
+                        <h4 className="font-extrabold text-white text-lg">Active & Expired Events</h4>
+                        {!showAddEventForm && (
                             <button 
-                                onClick={() => setShowAddOfferForm(true)} 
+                                onClick={() => setShowAddEventForm(true)} 
                                 className="px-4 py-2 bg-[#194a9a] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all duration-300 flex items-center gap-1.5 hover:-translate-y-0.5"
                             >
                                 <FaPlus />
-                                <span>Create New Offer</span>
+                                <span>Create New Event</span>
                             </button>
                         )}
                     </div>
 
-                    {offers.length > 0 ? (
+                    {events.length > 0 ? (
                         <div className="overflow-x-auto">
                             <table className="w-full border-collapse text-left text-sm">
                                 <thead>
                                     <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase text-xs">
                                         <th className="py-4 px-4">Preview</th>
-                                        <th className="py-4 px-4">Offer Title</th>
+                                        <th className="py-4 px-4">Event Title</th>
                                         <th className="py-4 px-4">Branch Location</th>
                                         <th className="py-4 px-4">Expiry Date</th>
                                         <th className="py-4 px-4 text-center">Status</th>
@@ -1372,15 +1373,15 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/50">
-                                    {offers.map((offer) => {
-                                        const expired = isOfferExpired(offer.expire_date);
-                                        const isEditing = editingOfferId === offer.id;
-                                        const firstPdfId = offer.pdfs?.[0]?.id;
-                                        const mainThumbnail = offer.pdfs?.[0]?.thumbnail_url || "";
-                                        const hasThumbnailError = firstPdfId ? offerThumbnailErrors[firstPdfId] : false;
+                                    {events.map((event) => {
+                                        const expired = isEventExpired(event.expire_date);
+                                        const isEditing = editingEventId === event.id;
+                                        const firstPdfId = event.pdfs?.[0]?.id;
+                                        const mainThumbnail = event.pdfs?.[0]?.thumbnail_url || "";
+                                        const hasThumbnailError = firstPdfId ? eventThumbnailErrors[firstPdfId] : false;
                                         
                                         return (
-                                            <tr key={offer.id} className="hover:bg-slate-900/25 transition">
+                                            <tr key={event.id} className="hover:bg-slate-900/25 transition">
                                                 <td className="py-4 px-4">
                                                     {mainThumbnail && !hasThumbnailError ? (
                                                         <img 
@@ -1388,7 +1389,7 @@ export default function AdminDashboard() {
                                                             alt="doc-thumb" 
                                                             onError={() => {
                                                                 if (firstPdfId) {
-                                                                    setOfferThumbnailErrors(prev => ({ ...prev, [firstPdfId]: true }));
+                                                                    setEventThumbnailErrors(prev => ({ ...prev, [firstPdfId]: true }));
                                                                 }
                                                             }}
                                                             className="w-12 h-16 object-cover rounded-lg border border-slate-800 shadow-sm" 
@@ -1404,20 +1405,20 @@ export default function AdminDashboard() {
                                                     {isEditing ? (
                                                         <input
                                                             type="text"
-                                                            value={editingOfferData.title}
-                                                            onChange={(e) => setEditingOfferData({ ...editingOfferData, title: e.target.value })}
+                                                            value={editingEventData.title}
+                                                            onChange={(e) => setEditingEventData({ ...editingEventData, title: e.target.value })}
                                                             className="border border-slate-800 rounded-lg px-3 py-1.5 text-xs w-full bg-slate-950 text-white font-semibold outline-none focus:border-blue-500"
                                                         />
                                                     ) : (
-                                                        offer.title
+                                                        event.title
                                                     )}
                                                 </td>
 
                                                 <td className="py-4 px-4 text-xs font-bold text-slate-400">
                                                     {isEditing ? (
                                                         <select
-                                                            value={editingOfferData.category}
-                                                            onChange={(e) => setEditingOfferData({ ...editingOfferData, category: e.target.value })}
+                                                            value={editingEventData.category}
+                                                            onChange={(e) => setEditingEventData({ ...editingEventData, category: e.target.value })}
                                                             className="border border-slate-800 rounded-lg px-3 py-1.5 text-xs w-full bg-slate-950 text-white font-semibold outline-none focus:border-blue-500"
                                                         >
                                                             <option value="dubai_lassi_home">DUBAI - LASSI HOME SHOP</option>
@@ -1427,7 +1428,7 @@ export default function AdminDashboard() {
                                                             <option value="alain_leptis">AL AIN - LEPTIS SHOPPING CENTER AL AIN</option>
                                                         </select>
                                                     ) : (
-                                                        formatCategory(offer.category)
+                                                        formatCategory(event.category)
                                                     )}
                                                 </td>
 
@@ -1436,16 +1437,16 @@ export default function AdminDashboard() {
                                                         <div className="flex flex-col gap-2 min-w-[200px]">
                                                             <input
                                                                 type="date"
-                                                                value={editingOfferDate}
-                                                                onChange={(e) => setEditingOfferDate(e.target.value)}
+                                                                value={editingEventDate}
+                                                                onChange={(e) => setEditingEventDate(e.target.value)}
                                                                 className="border border-slate-800 rounded-lg px-2 py-1 text-xs bg-slate-950 text-white font-semibold outline-none focus:border-blue-500 w-full"
                                                             />
                                                             <div className="flex gap-1">
                                                                 <select
-                                                                    value={editingOfferHour}
-                                                                    onChange={(e) => setEditingOfferHour(e.target.value)}
+                                                                    value={editingEventHour}
+                                                                    onChange={(e) => setEditingEventHour(e.target.value)}
                                                                     className="border border-slate-800 rounded-lg px-2 py-1 text-xs bg-slate-950 text-white font-semibold outline-none focus:border-blue-500 w-1/2"
-                                                                    disabled={!editingOfferDate}
+                                                                    disabled={!editingEventDate}
                                                                 >
                                                                     {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(h => (
                                                                         <option key={h} value={h} className="bg-slate-950 text-white">
@@ -1454,10 +1455,10 @@ export default function AdminDashboard() {
                                                                     ))}
                                                                 </select>
                                                                 <select
-                                                                    value={editingOfferMinute}
-                                                                    onChange={(e) => setEditingOfferMinute(e.target.value)}
+                                                                    value={editingEventMinute}
+                                                                    onChange={(e) => setEditingEventMinute(e.target.value)}
                                                                     className="border border-slate-800 rounded-lg px-2 py-1 text-xs bg-slate-950 text-white font-semibold outline-none focus:border-blue-500 w-1/2"
-                                                                    disabled={!editingOfferDate}
+                                                                    disabled={!editingEventDate}
                                                                 >
                                                                     {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(m => (
                                                                         <option key={m} value={m} className="bg-slate-950 text-white">{m}</option>
@@ -1466,7 +1467,7 @@ export default function AdminDashboard() {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        offer.expire_date ? new Date(offer.expire_date).toLocaleString() : "No Limit"
+                                                        event.expire_date ? new Date(event.expire_date).toLocaleString() : "No Limit"
                                                     )}
                                                 </td>
 
@@ -1487,13 +1488,13 @@ export default function AdminDashboard() {
                                                         {isEditing ? (
                                                             <>
                                                                 <button
-                                                                    onClick={() => handleSaveEditOffer(offer.id)}
+                                                                    onClick={() => handleSaveEditEvent(event.id)}
                                                                     className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition"
                                                                 >
                                                                     <FaCheck />
                                                                 </button>
                                                                 <button
-                                                                    onClick={handleCancelEditOffer}
+                                                                    onClick={handleCancelEditEvent}
                                                                     className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
                                                                 >
                                                                     <FaTimes />
@@ -1502,16 +1503,16 @@ export default function AdminDashboard() {
                                                         ) : (
                                                             <>
                                                                 <button
-                                                                    onClick={() => handleStartEditOffer(offer)}
+                                                                    onClick={() => handleStartEditEvent(event)}
                                                                     className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-lg hover:text-white transition"
                                                                     title="Edit Details"
                                                                 >
                                                                     <FaEdit className="text-xs" />
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleDeleteOffer(offer.id)}
+                                                                    onClick={() => handleDeleteEvent(event.id)}
                                                                     className="p-2 bg-rose-950/30 border border-rose-900/50 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg transition"
-                                                                    title="Delete Offer"
+                                                                    title="Delete Event"
                                                                 >
                                                                     <FaTrash className="text-xs" />
                                                                 </button>
@@ -1526,7 +1527,7 @@ export default function AdminDashboard() {
                             </table>
                         </div>
                     ) : (
-                        <p className="text-slate-500 text-sm py-12 text-center font-medium">No offers dynamic catalogues created yet.</p>
+                        <p className="text-slate-500 text-sm py-12 text-center font-medium">No events created yet.</p>
                     )}
                 </div>
             </div>
@@ -1645,7 +1646,7 @@ export default function AdminDashboard() {
                         Create New Project Section
                     </h4>
                     <form onSubmit={handleCreateProject} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Project Title</label>
                                 <input
@@ -1657,6 +1658,22 @@ export default function AdminDashboard() {
                                     className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
                                     required
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Branch Location</label>
+                                <select
+                                    name="category"
+                                    value={newProject.category}
+                                    onChange={handleProjectChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                >
+                                    <option value="dubai_lassi_home">DUBAI - LASSI HOME SHOP</option>
+                                    <option value="rak_hamrah">RAK - LEPTIS SHOPPING CENTER AL HAMRAH</option>
+                                    <option value="rak_marjan">RAK - LEPTIS SUPERMARKET MARJAN</option>
+                                    <option value="alain_spicy">AL AIN - SPICY VILLAGE AL AIN</option>
+                                    <option value="alain_leptis">AL AIN - LEPTIS SHOPPING CENTER AL AIN</option>
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Select Main / Hero Image</label>
@@ -1712,9 +1729,14 @@ export default function AdminDashboard() {
                                                 />
                                                 <div>
                                                     <h5 className="font-extrabold text-white text-base leading-snug">{project.title}</h5>
-                                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1 block">
-                                                        {project.images ? project.images.length : 0} sub-gallery images
-                                                    </span>
+                                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                        <span className="text-[9px] text-amber-500 font-black uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                                            {formatCategory(project.category)}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                                            {project.images ? project.images.length : 0} sub-gallery images
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -2682,7 +2704,7 @@ export default function AdminDashboard() {
                             { id: "dashboard", label: "Dashboard", icon: <FaChartBar /> },
                             { id: "applications", label: "CV Applications", icon: <FaBriefcase />, badge: applications.length },
                             { id: "messages", label: "Contact Inbox", icon: <FaEnvelope />, badge: messages.length },
-                            { id: "offers", label: "Manage Offers", icon: <FaCalendarAlt />, badge: offers.length },
+                            { id: "events", label: "Manage Events", icon: <FaCalendarAlt />, badge: events.length },
                             { id: "brands", label: "Brand Logos", icon: <FaUpload />, badge: brandLogos.length },
                             { id: "projects", label: "Projects Portfolio", icon: <FaDatabase />, badge: projects.length },
                             { id: "team", label: "Our Team", icon: <FaUser />, badge: teamMembers.length },
@@ -2780,7 +2802,7 @@ export default function AdminDashboard() {
                             {activeTab === "dashboard" && renderDashboardTab()}
                             {activeTab === "applications" && renderApplicationsTab()}
                             {activeTab === "messages" && renderMessagesTab()}
-                            {activeTab === "offers" && renderOffersTab()}
+                            {activeTab === "events" && renderEventsTab()}
                             {activeTab === "brands" && renderBrandsTab()}
                             {activeTab === "projects" && renderProjectsTab()}
                             {activeTab === "team" && renderTeamTab()}
