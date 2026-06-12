@@ -62,6 +62,8 @@ export default function AdminDashboard() {
     const [teamMembers, setTeamMembers] = useState([]);
     const [branches, setBranches] = useState([]);
     const [newBranchName, setNewBranchName] = useState("");
+    const [editingBranchId, setEditingBranchId] = useState(null);
+    const [editingBranchName, setEditingBranchName] = useState("");
     const [branchSubmitStatus, setBranchSubmitStatus] = useState("");
 
     // Loading & Operation states
@@ -779,6 +781,32 @@ export default function AdminDashboard() {
         } catch (err) {
             console.error("Delete branch error:", err);
             alert("Failed to delete branch.");
+        }
+    };
+
+    const handleStartEditBranch = (branch) => {
+        setEditingBranchId(branch.id);
+        setEditingBranchName(branch.name);
+    };
+
+    const handleCancelEditBranch = () => {
+        setEditingBranchId(null);
+        setEditingBranchName("");
+    };
+
+    const handleSaveEditBranch = async (branchId) => {
+        if (!editingBranchName.trim()) {
+            alert("Branch name cannot be empty.");
+            return;
+        }
+        try {
+            await axios.patch(`${BRANCHES_URL}${branchId}/`, { name: editingBranchName.trim() }, getAuthHeaders());
+            setEditingBranchId(null);
+            setEditingBranchName("");
+            fetchData();
+        } catch (err) {
+            console.error("Edit branch error:", err);
+            alert("Failed to update branch name. Ensure it is unique.");
         }
     };
 
@@ -1974,25 +2002,67 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/50">
-                                    {branches.map((branch) => (
-                                        <tr key={branch.id} className="hover:bg-slate-900/25 transition">
-                                            <td className="py-4 px-4 font-bold text-white">
-                                                {branch.name}
-                                            </td>
-                                            <td className="py-4 px-4 text-xs font-semibold text-slate-400 font-mono">
-                                                {branch.key}
-                                            </td>
-                                            <td className="py-4 px-4 text-right">
-                                                <button
-                                                    onClick={() => handleDeleteBranch(branch.id)}
-                                                    className="p-2.5 bg-rose-950/30 hover:bg-rose-600 border border-rose-900/50 hover:border-rose-500 text-rose-400 hover:text-white rounded-xl transition duration-300 cursor-pointer"
-                                                    title="Delete Branch"
-                                                >
-                                                    <FaTrash className="text-xs" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {branches.map((branch) => {
+                                        const isEditing = editingBranchId === branch.id;
+                                        return (
+                                            <tr key={branch.id} className="hover:bg-slate-900/25 transition">
+                                                <td className="py-4 px-4 font-bold text-white">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editingBranchName}
+                                                            onChange={(e) => setEditingBranchName(e.target.value)}
+                                                            className="border border-slate-800 rounded-lg px-3 py-1.5 text-xs w-full bg-slate-950 text-white font-semibold outline-none focus:border-blue-500"
+                                                        />
+                                                    ) : (
+                                                        branch.name
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-xs font-semibold text-slate-400 font-mono">
+                                                    {branch.key}
+                                                </td>
+                                                <td className="py-4 px-4 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        {isEditing ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleSaveEditBranch(branch.id)}
+                                                                    className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition cursor-pointer"
+                                                                    title="Save Name"
+                                                                >
+                                                                    <FaCheck className="text-xs" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={handleCancelEditBranch}
+                                                                    className="p-2 bg-slate-850 hover:bg-slate-700 text-slate-300 rounded-lg transition cursor-pointer"
+                                                                    title="Cancel"
+                                                                >
+                                                                    <FaTimes className="text-xs" />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleStartEditBranch(branch)}
+                                                                    className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-lg hover:text-white transition cursor-pointer"
+                                                                    title="Edit Name"
+                                                                >
+                                                                    <FaEdit className="text-xs" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteBranch(branch.id)}
+                                                                    className="p-2 bg-rose-950/30 border border-rose-900/50 hover:bg-rose-600 text-rose-455 hover:text-white rounded-lg transition cursor-pointer"
+                                                                    title="Delete Branch"
+                                                                >
+                                                                    <FaTrash className="text-xs" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
