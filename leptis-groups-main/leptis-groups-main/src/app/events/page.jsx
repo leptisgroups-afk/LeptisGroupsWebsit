@@ -22,11 +22,12 @@ export default function Events() {
   const [selectedEventTitle, setSelectedEventTitle] = useState("");
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [pageChanging, setPageChanging] = useState(false);
+  const [branches, setBranches] = useState([]);
   const [viewMode, setViewMode] = useState("cover"); // "cover" or "pdf"
   const [imageErrors, setImageErrors] = useState({});
   const [mainThumbnailErrors, setMainThumbnailErrors] = useState({});
 
-  // Load events from backend
+  // Load events and branches from backend
   useEffect(() => {
     fetch(getApiUrl("/api/events/"), { cache: "no-store"})
       .then((res) => res.json())
@@ -34,6 +35,13 @@ export default function Events() {
         setEvents(data);
       })
       .catch((err) => console.error("FETCH ERROR:", err));
+
+    fetch(getApiUrl("/api/branches/"), { cache: "no-store"})
+      .then((res) => res.json())
+      .then((data) => {
+        setBranches(data);
+      })
+      .catch((err) => console.error("BRANCH FETCH ERROR:", err));
   }, []);
 
   // Check if an event is expired
@@ -90,6 +98,8 @@ export default function Events() {
   // Format category name for nice display
   const formatCategory = (cat) => {
     if (!cat) return "";
+    const matched = branches.find(b => b.key === cat);
+    if (matched) return matched.name.toUpperCase();
     return cat
       .replace(/_/g, " ")
       .toUpperCase();
@@ -172,11 +182,11 @@ export default function Events() {
                     onChange={(e) => setCategory(e.target.value)}
                   >
                     <option value="" className="bg-[#080b11] text-slate-300">All Locations</option>
-                    <option value="dubai_lassi_home" className="bg-[#080b11] text-slate-300">Dubai - Lassi Home Shop</option>
-                    <option value="rak_hamrah" className="bg-[#080b11] text-slate-300">RAK - Leptis Al Hamrah</option>
-                    <option value="rak_marjan" className="bg-[#080b11] text-slate-300">RAK - Leptis Supermarket Marjan</option>
-                    <option value="alain_spicy" className="bg-[#080b11] text-slate-300">Al Ain - Spicy Village</option>
-                    <option value="alain_leptis" className="bg-[#080b11] text-slate-300">Al Ain - Leptis Al Ain</option>
+                    {branches.map(branch => (
+                      <option key={branch.id} value={branch.key} className="bg-[#080b11] text-slate-300">
+                        {branch.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

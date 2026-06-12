@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from .models import (
     CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
-    BrandLogo, Project, ProjectImage, TeamMember
+    BrandLogo, Project, ProjectImage, TeamMember, Branch
 )
 
 
@@ -158,5 +158,14 @@ class TeamMemberAdmin(admin.ModelAdmin):
             return format_html('<img src="{}" style="max-width:50px; max-height:50px;" />', obj.image.url)
         return "No Image"
     preview_image.short_description = "Preview"
+
+
+# -----------------------------
+# Branch Admin
+# -----------------------------
+@admin.register(Branch)
+class BranchAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "key", "created_at")
+    search_fields = ("name", "key")
 
 

@@ -1,21 +1,39 @@
 from django.db import models
 from django.utils.html import format_html
 import time
+import re
+
+def generate_key(name):
+    # Convert to lowercase, replace non-alphanumeric with underscore, collapse underscores
+    k = name.lower()
+    k = re.sub(r'[^a-z0-9]', '_', k)
+    k = re.sub(r'_+', '_', k)
+    return k.strip('_')
+
+
+# -----------------------------
+# Branch Model
+# -----------------------------
+class Branch(models.Model):
+    key = models.CharField(max_length=100, unique=True, blank=True)
+    name = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = generate_key(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
 
 # -----------------------------
 # Event Model
 # -----------------------------
 class Event(models.Model):
-    CATEGORY_CHOICES = [
-        ("dubai_lassi_home", "DUBAI - LASSI HOME SHOP"),
-        ("rak_hamrah", "RAK - LEPTIS SHOPPING CENTER AL HAMRAH"),
-        ("rak_marjan", "RAK - LEPTIS SUPERMARKET MARJAN"),
-        ("alain_spicy", "AL AIN - SPICY VILLAGE AL AIN"),
-        ("alain_leptis", "AL AIN - LEPTIS SHOPPING CENTER AL AIN"),
-    ]
-
     title = models.CharField(max_length=255)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    category = models.CharField(max_length=100)
     expire_date = models.DateTimeField(blank=True, null=True, db_index=True)  # Expiration date and time for events
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -180,18 +198,9 @@ class BrandLogo(models.Model):
 # Project Model
 # -----------------------------
 class Project(models.Model):
-    CATEGORY_CHOICES = [
-        ("dubai_lassi_home", "DUBAI - LASSI HOME SHOP"),
-        ("rak_hamrah", "RAK - LEPTIS SHOPPING CENTER AL HAMRAH"),
-        ("rak_marjan", "RAK - LEPTIS SUPERMARKET MARJAN"),
-        ("alain_spicy", "AL AIN - SPICY VILLAGE AL AIN"),
-        ("alain_leptis", "AL AIN - LEPTIS SHOPPING CENTER AL AIN"),
-    ]
-
     title = models.CharField(max_length=255)
     category = models.CharField(
-        max_length=50, 
-        choices=CATEGORY_CHOICES, 
+        max_length=100, 
         default="dubai_lassi_home"
     )
     main_image = models.ImageField(upload_to="projects/")

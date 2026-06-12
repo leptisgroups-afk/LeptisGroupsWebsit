@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     CareerApplicationViewSet,
     ContactMessageViewSet,
+    BranchViewSet,
     EventViewSet,
     SiteSettingsViewSet,
     BrandLogoViewSet,
@@ -16,6 +17,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r'career-applications', CareerApplicationViewSet, basename='careerapplication')
 router.register(r'contact-messages', ContactMessageViewSet, basename='contactmessage')
+router.register(r'branches', BranchViewSet, basename='branches')
 router.register(r'events', EventViewSet, basename='events')  
 router.register(r'site-settings', SiteSettingsViewSet, basename='sitesettings')
 router.register(r'brand-logos', BrandLogoViewSet, basename='brandlogos')

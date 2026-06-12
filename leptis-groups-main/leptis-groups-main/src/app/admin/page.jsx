@@ -7,7 +7,8 @@ import {
     FaLock, FaUser, FaBuilding, FaRegFilePdf, FaEnvelope, 
     FaPhone, FaDatabase, FaCog, FaChartBar, FaSignOutAlt, 
     FaCalendarAlt, FaBriefcase, FaPaperPlane, FaEdit, FaCheck, 
-    FaExclamationTriangle, FaTrash, FaPlus, FaEye, FaArrowRight, FaUpload, FaTimes
+    FaExclamationTriangle, FaTrash, FaPlus, FaEye, FaArrowRight, FaUpload, FaTimes,
+    FaMapMarkerAlt
 } from 'react-icons/fa';
 import { getApiUrl, getCleanImageUrl } from "@/data/config";
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +24,7 @@ export default function AdminDashboard() {
     const PROJECTS_URL = getApiUrl("/api/projects/");
     const PROJECT_IMAGES_URL = getApiUrl("/api/project-images/");
     const TEAM_MEMBERS_URL = getApiUrl("/api/team-members/");
+    const BRANCHES_URL = getApiUrl("/api/branches/");
     
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loginForm, setLoginForm] = useState({ username: "", password: "" });
@@ -48,7 +50,7 @@ export default function AdminDashboard() {
     };
 
     // Navigation state
-    const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard", "applications", "messages", "events", "settings", "brands", "projects", "team"
+    const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard", "applications", "messages", "events", "settings", "brands", "projects", "team", "branches"
 
     // Data states
     const [settings, setSettings] = useState(null);
@@ -58,6 +60,9 @@ export default function AdminDashboard() {
     const [brandLogos, setBrandLogos] = useState([]);
     const [projects, setProjects] = useState([]);
     const [teamMembers, setTeamMembers] = useState([]);
+    const [branches, setBranches] = useState([]);
+    const [newBranchName, setNewBranchName] = useState("");
+    const [branchSubmitStatus, setBranchSubmitStatus] = useState("");
 
     // Loading & Operation states
     const [loadingData, setLoadingData] = useState(false);
@@ -315,6 +320,18 @@ export default function AdminDashboard() {
         }
     }, [isLoggedIn]);
 
+    // Automatically set default category to first branch when loaded
+    useEffect(() => {
+        if (branches.length > 0) {
+            if (!newEvent.category) {
+                setNewEvent(prev => ({ ...prev, category: branches[0].key }));
+            }
+            if (!newProject.category) {
+                setNewProject(prev => ({ ...prev, category: branches[0].key }));
+            }
+        }
+    }, [branches, newEvent.category, newProject.category]);
+
     const fetchData = async () => {
         setLoadingData(true);
         try {
@@ -328,14 +345,15 @@ export default function AdminDashboard() {
                 }
             };
 
-            const [settRes, appRes, msgRes, evRes, brandRes, projRes, teamRes] = await Promise.all([
+            const [settRes, appRes, msgRes, evRes, brandRes, projRes, teamRes, branchRes] = await Promise.all([
                 getOrFallback(SETTINGS_URL, null),
                 getOrFallback(APPLICATIONS_URL, []),
                 getOrFallback(MESSAGES_URL, []),
                 getOrFallback(EVENTS_URL, []),
                 getOrFallback(BRAND_LOGOS_URL, []),
                 getOrFallback(PROJECTS_URL, []),
-                getOrFallback(TEAM_MEMBERS_URL, [])
+                getOrFallback(TEAM_MEMBERS_URL, []),
+                getOrFallback(BRANCHES_URL, [])
             ]);
 
             if (settRes) {
@@ -355,6 +373,7 @@ export default function AdminDashboard() {
             setBrandLogos(brandRes);
             setProjects(projRes);
             setTeamMembers(teamRes);
+            setBranches(branchRes);
         } catch (err) {
             console.error("Error loading admin data:", err);
         } finally {
@@ -728,6 +747,38 @@ export default function AdminDashboard() {
         } catch (err) {
             console.error("Delete brand logo error:", err);
             alert("Failed to delete brand logo.");
+        }
+    };
+
+    // --- BRANCHES CRUD CONTROLS ---
+    const handleCreateBranch = async (e) => {
+        e.preventDefault();
+        if (!newBranchName.trim()) {
+            setBranchSubmitStatus("Error: Branch name cannot be empty.");
+            return;
+        }
+        setBranchSubmitStatus("Creating branch...");
+
+        try {
+            await axios.post(BRANCHES_URL, { name: newBranchName.trim() }, getAuthHeaders());
+            setBranchSubmitStatus("Branch created successfully!");
+            setNewBranchName("");
+            fetchData();
+            setTimeout(() => setBranchSubmitStatus(""), 5000);
+        } catch (err) {
+            console.error("Create branch error:", err);
+            setBranchSubmitStatus("Failed to create branch. Ensure the name is unique.");
+        }
+    };
+
+    const handleDeleteBranch = async (branchId) => {
+        if (!confirm("Are you sure you want to delete this branch? Existing projects and events with this branch will still display their stored key name, but you won't be able to select this branch for new items.")) return;
+        try {
+            await axios.delete(`${BRANCHES_URL}${branchId}/`, getAuthHeaders());
+            fetchData();
+        } catch (err) {
+            console.error("Delete branch error:", err);
+            alert("Failed to delete branch.");
         }
     };
 
@@ -1226,11 +1277,11 @@ export default function AdminDashboard() {
                                                 className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
                                                 required
                                             >
-                                                <option value="dubai_lassi_home">DUBAI - LASSI HOME SHOP</option>
-                                                <option value="rak_hamrah">RAK - LEPTIS SHOPPING CENTER AL HAMRAH</option>
-                                                <option value="rak_marjan">RAK - LEPTIS SUPERMARKET MARJAN</option>
-                                                <option value="alain_spicy">AL AIN - SPICY VILLAGE AL AIN</option>
-                                                <option value="alain_leptis">AL AIN - LEPTIS SHOPPING CENTER AL AIN</option>
+                                                {branches.map(branch => (
+                                                    <option key={branch.id} value={branch.key} className="bg-[#080b11] text-slate-350">
+                                                        {branch.name}
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                     </div>
@@ -1421,11 +1472,11 @@ export default function AdminDashboard() {
                                                             onChange={(e) => setEditingEventData({ ...editingEventData, category: e.target.value })}
                                                             className="border border-slate-800 rounded-lg px-3 py-1.5 text-xs w-full bg-slate-950 text-white font-semibold outline-none focus:border-blue-500"
                                                         >
-                                                            <option value="dubai_lassi_home">DUBAI - LASSI HOME SHOP</option>
-                                                            <option value="rak_hamrah">RAK - LEPTIS SHOPPING CENTER AL HAMRAH</option>
-                                                            <option value="rak_marjan">RAK - LEPTIS SUPERMARKET MARJAN</option>
-                                                            <option value="alain_spicy">AL AIN - SPICY VILLAGE AL AIN</option>
-                                                            <option value="alain_leptis">AL AIN - LEPTIS SHOPPING CENTER AL AIN</option>
+                                                            {branches.map(branch => (
+                                                                <option key={branch.id} value={branch.key} className="bg-[#080b11] text-slate-350">
+                                                                    {branch.name}
+                                                                </option>
+                                                            ))}
                                                         </select>
                                                     ) : (
                                                         formatCategory(event.category)
@@ -1668,11 +1719,11 @@ export default function AdminDashboard() {
                                     className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
                                     required
                                 >
-                                    <option value="dubai_lassi_home">DUBAI - LASSI HOME SHOP</option>
-                                    <option value="rak_hamrah">RAK - LEPTIS SHOPPING CENTER AL HAMRAH</option>
-                                    <option value="rak_marjan">RAK - LEPTIS SUPERMARKET MARJAN</option>
-                                    <option value="alain_spicy">AL AIN - SPICY VILLAGE AL AIN</option>
-                                    <option value="alain_leptis">AL AIN - LEPTIS SHOPPING CENTER AL AIN</option>
+                                    {branches.map(branch => (
+                                        <option key={branch.id} value={branch.key} className="bg-[#080b11] text-slate-350">
+                                            {branch.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
@@ -1862,6 +1913,91 @@ export default function AdminDashboard() {
                         </div>
                     ) : (
                         <p className="text-slate-500 text-sm py-12 text-center font-medium">No projects in database. Fallback content will be displayed on the portfolio.</p>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderBranchesTab = () => {
+        return (
+            <div className="space-y-8 text-left">
+                {branchSubmitStatus && (
+                    <div className="p-4 rounded-xl text-sm font-bold border bg-blue-950/20 border-blue-500/30 text-blue-400 transition-all duration-300">
+                        {branchSubmitStatus}
+                    </div>
+                )}
+
+                {/* Create New Branch Form */}
+                <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h4 className="font-extrabold text-white text-lg mb-6 pb-4 border-b border-slate-800/80">
+                        Add New Branch Location
+                    </h4>
+                    <form onSubmit={handleCreateBranch} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Branch Display Name</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. ABU DHABI - LEPTIS OUTLET"
+                                    value={newBranchName}
+                                    onChange={(e) => setNewBranchName(e.target.value)}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <button
+                                    type="submit"
+                                    className="px-6 py-3 bg-[#194a9a] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                                >
+                                    Add Branch
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                {/* Existing Branches List */}
+                <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h4 className="font-extrabold text-white text-lg mb-6 pb-4 border-b border-slate-800/80">
+                        Active Branch Locations
+                    </h4>
+                    {branches.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-left text-sm">
+                                <thead>
+                                    <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase text-xs">
+                                        <th className="py-4 px-4">Branch Name (Label)</th>
+                                        <th className="py-4 px-4">Branch Key (System ID)</th>
+                                        <th className="py-4 px-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/50">
+                                    {branches.map((branch) => (
+                                        <tr key={branch.id} className="hover:bg-slate-900/25 transition">
+                                            <td className="py-4 px-4 font-bold text-white">
+                                                {branch.name}
+                                            </td>
+                                            <td className="py-4 px-4 text-xs font-semibold text-slate-400 font-mono">
+                                                {branch.key}
+                                            </td>
+                                            <td className="py-4 px-4 text-right">
+                                                <button
+                                                    onClick={() => handleDeleteBranch(branch.id)}
+                                                    className="p-2.5 bg-rose-950/30 hover:bg-rose-600 border border-rose-900/50 hover:border-rose-500 text-rose-400 hover:text-white rounded-xl transition duration-300 cursor-pointer"
+                                                    title="Delete Branch"
+                                                >
+                                                    <FaTrash className="text-xs" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-slate-500 text-sm py-12 text-center font-medium">No branch locations registered. Populate branches first to use selectors.</p>
                     )}
                 </div>
             </div>
@@ -2708,6 +2844,7 @@ export default function AdminDashboard() {
                             { id: "brands", label: "Brand Logos", icon: <FaUpload />, badge: brandLogos.length },
                             { id: "projects", label: "Projects Portfolio", icon: <FaDatabase />, badge: projects.length },
                             { id: "team", label: "Our Team", icon: <FaUser />, badge: teamMembers.length },
+                            { id: "branches", label: "Manage Branches", icon: <FaMapMarkerAlt />, badge: branches.length },
                             { id: "settings", label: "Site Settings", icon: <FaCog /> }
                         ].map((item) => {
                             const isActive = activeTab === item.id;
@@ -2806,6 +2943,7 @@ export default function AdminDashboard() {
                             {activeTab === "brands" && renderBrandsTab()}
                             {activeTab === "projects" && renderProjectsTab()}
                             {activeTab === "team" && renderTeamTab()}
+                            {activeTab === "branches" && renderBranchesTab()}
                             {activeTab === "settings" && renderSettingsTab()}
                         </motion.div>
                     </AnimatePresence>

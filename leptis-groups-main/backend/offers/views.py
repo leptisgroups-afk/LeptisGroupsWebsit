@@ -36,7 +36,7 @@ class IsAdminOrCreateOnly(permissions.BasePermission):
 
 from .models import (
     CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
-    BrandLogo, Project, ProjectImage, TeamMember
+    BrandLogo, Project, ProjectImage, TeamMember, Branch
 )
 from .serializers import (
     CareerApplicationSerializer,
@@ -47,8 +47,19 @@ from .serializers import (
     BrandLogoSerializer,
     ProjectSerializer,
     ProjectImageSerializer,
-    TeamMemberSerializer
+    TeamMemberSerializer,
+    BranchSerializer
 )
+
+
+# -------------------------------------------------------------------
+# BRANCH VIEWSET
+# -------------------------------------------------------------------
+class BranchViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminOrReadOnly]
+    queryset = Branch.objects.all().order_by("name")
+    serializer_class = BranchSerializer
+    parser_classes = [JSONParser]
 
 
 # -------------------------------------------------------------------

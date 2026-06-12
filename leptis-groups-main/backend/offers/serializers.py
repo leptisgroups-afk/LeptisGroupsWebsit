@@ -1,8 +1,19 @@
 from rest_framework import serializers
 from .models import (
     CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
-    BrandLogo, Project, ProjectImage, TeamMember
+    BrandLogo, Project, ProjectImage, TeamMember, Branch
 )
+
+
+
+
+# -------------------------------------------------------------------
+# BRANCH SERIALIZER
+# -------------------------------------------------------------------
+class BranchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Branch
+        fields = ["id", "key", "name", "created_at"]
 
 
 
