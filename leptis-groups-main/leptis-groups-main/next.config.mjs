@@ -1,6 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   devIndicators: false,
+  async redirects() {
+    return [
+      {
+        source: '/offers',
+        destination: '/events',
+        permanent: true,
+      },
+      {
+        source: '/offers/:path*',
+        destination: '/events/:path*',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
