@@ -10,6 +10,7 @@ from .views import (
     ProjectViewSet,
     ProjectImageViewSet,
     TeamMemberViewSet,
+    BlockedIPViewSet,
     health_check
 )
 
@@ -24,6 +25,7 @@ router.register(r'brand-logos', BrandLogoViewSet, basename='brandlogos')
 router.register(r'projects', ProjectViewSet, basename='projects')
 router.register(r'project-images', ProjectImageViewSet, basename='projectimages')
 router.register(r'team-members', TeamMemberViewSet, basename='teammembers')
+router.register(r'blocked-ips', BlockedIPViewSet, basename='blockedips')
 
 
 

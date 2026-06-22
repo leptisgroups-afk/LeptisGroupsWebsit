@@ -1,10 +1,5 @@
 const projects = [
     {
-        id: 1,
-        title: "Leptis Shopping Center AI Hmarah",
-        image: "/pro1.jpeg",
-    },
-    {
         id: 2,
         title: "Leptis Hypermarket SHOPPING CENTER AL AIN ",
         image: "/AlAin.jpeg ",
@@ -27,32 +22,6 @@ const projects = [
 ];
 
 const wholeProjects = [
-    {
-        id: 1,
-        title: "Leptis Shopping Center AI Hmarah",
-        image: [
-            {
-                image: "/pro1-2.jpg",
-                title: "Leptis Shopping Center AI Hmarah",
-            },
-            {
-                image: "/pro1-3.jpg",
-                title: "Leptis Shopping Center",
-            },
-            {
-                image: "/pro1-4.jpg",
-                title: "Rental Outlets",
-            },
-            {
-                image: "/pro1-5.jpg",
-                title: "Spice Village Restaurant Branch 2",
-            },
-            {
-                image: "/pro1-6.jpg",
-                title: "Leptis Shopping Center AI Hmarah",
-            },
-        ]
-    },
     {
         id: 2,
         title: "Leptis Hypermarket Ajman",

@@ -1,4 +1,5 @@
 import os
+from django.contrib.auth import authenticate
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
@@ -36,7 +37,8 @@ class IsAdminOrCreateOnly(permissions.BasePermission):
 
 from .models import (
     CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
-    BrandLogo, Project, ProjectImage, TeamMember, Branch
+    BrandLogo, Project, ProjectImage, TeamMember, Branch, AdminOTP,
+    BlockedIP, FailedLoginAttempt
 )
 from .serializers import (
     CareerApplicationSerializer,
@@ -48,7 +50,8 @@ from .serializers import (
     ProjectSerializer,
     ProjectImageSerializer,
     TeamMemberSerializer,
-    BranchSerializer
+    BranchSerializer,
+    BlockedIPSerializer
 )
 
 
@@ -300,6 +303,14 @@ def health_check(request):
         "database": "ok",
         "message": "All systems operational"
     }
+    # Get client IP
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    status_data["client_ip"] = ip
+
     try:
         # Check database connection
         with connection.cursor() as cursor:
@@ -343,6 +354,156 @@ def serve_secure_cv(request, filename):
         return FileResponse(open(file_path, 'rb'), content_type='application/pdf')
     
     raise Http404("CV not found.")
+
+
+# -------------------------------------------------------------------
+# ADMIN OTP LOGIN VIEWS & FIREWALL HELPERS
+# -------------------------------------------------------------------
+import random
+import uuid
+from django.utils import timezone
+
+def _get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def _register_failed_attempt(ip, username):
+    FailedLoginAttempt.objects.create(ip_address=ip, username=username)
+    fifteen_minutes_ago = timezone.now() - timezone.timedelta(minutes=15)
+    failed_count = FailedLoginAttempt.objects.filter(
+        ip_address=ip,
+        attempted_at__gte=fifteen_minutes_ago
+    ).count()
+    if failed_count >= 5:
+        BlockedIP.objects.get_or_create(
+            ip_address=ip,
+            defaults={"reason": "Automatic block: 5 failed login attempts within 15 minutes"}
+        )
+        print(f"\n[FIREWALL SECURITY] IP {ip} has been automatically blocked due to brute-force protection.\n")
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def admin_login(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    ip = _get_client_ip(request)
+
+    # Check if already blocked (as a fallback safety)
+    if BlockedIP.objects.filter(ip_address=ip).exists():
+        return Response({"detail": "Access denied by security firewall. Your IP is blocked."}, status=status.HTTP_403_FORBIDDEN)
+
+    if not username or not password:
+        return Response({"detail": "Username and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(username=username, password=password)
+
+    if user is not None:
+        if not user.is_staff:
+            _register_failed_attempt(ip, username)
+            return Response({"detail": "Access restricted to admin/staff users only."}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Generate 6-digit OTP
+        otp = f"{random.randint(100000, 999999)}"
+        
+        # Delete previous active OTPs for this user
+        AdminOTP.objects.filter(user=user).delete()
+        
+        otp_record = AdminOTP.objects.create(
+            user=user,
+            otp=otp
+        )
+
+        # Print OTP to terminal for debug/testing
+        print(f"\n[SECURITY OTP] Generated verification code for admin '{user.username}': {otp}\n")
+
+        # Determine email recipient
+        recipient_email = user.email
+        if not recipient_email:
+            # Fallback to SiteSettings email recipient
+            site_settings = SiteSettings.objects.first()
+            if site_settings and site_settings.careers_email_recipient:
+                recipient_email = site_settings.careers_email_recipient
+            else:
+                recipient_email = "leptisgroupsit@gmail.com"
+
+        # Send email with OTP code
+        subject = "Admin Login Verification Code"
+        body = f"Hello {user.username},\n\nYour admin portal verification code is: {otp}\n\nThis code will expire in 5 minutes."
+        
+        try:
+            send_mail(
+                subject,
+                body,
+                settings.DEFAULT_FROM_EMAIL,
+                [recipient_email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            print(f"[ERROR] Failed to send OTP verification email: {e}")
+
+        return Response({
+            "otp_required": True,
+            "session_key": str(otp_record.session_key)
+        }, status=status.HTTP_200_OK)
+
+    # Failed credentials
+    _register_failed_attempt(ip, username or "unknown")
+    return Response({"detail": "Invalid username or password."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def verify_otp(request):
+    session_key = request.data.get('session_key')
+    otp = request.data.get('otp')
+    ip = _get_client_ip(request)
+
+    # Check if already blocked (as a fallback safety)
+    if BlockedIP.objects.filter(ip_address=ip).exists():
+        return Response({"detail": "Access denied by security firewall. Your IP is blocked."}, status=status.HTTP_403_FORBIDDEN)
+
+    if not session_key or not otp:
+        return Response({"detail": "Verification session key and OTP code are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        otp_record = AdminOTP.objects.get(session_key=session_key, is_verified=False)
+    except AdminOTP.DoesNotExist:
+        _register_failed_attempt(ip, "otp_session_failed")
+        return Response({"detail": "Invalid verification code or session."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if otp_record.otp != otp:
+        _register_failed_attempt(ip, otp_record.user.username)
+        return Response({"detail": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check OTP expiration (5 minutes)
+    elapsed_time = timezone.now() - otp_record.created_at
+    if elapsed_time.total_seconds() > 300:
+        otp_record.delete()
+        _register_failed_attempt(ip, otp_record.user.username)
+        return Response({"detail": "Verification code has expired. Please request a new code."}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = otp_record.user
+    otp_record.delete() # Consume OTP so it cannot be reused
+
+    # Generate or retrieve authentication token
+    token, created = Token.objects.get_or_create(user=user)
+    return Response({
+        "token": token.key
+    }, status=status.HTTP_200_OK)
+
+
+# -------------------------------------------------------------------
+# FIREWALL BLOCKED IPS VIEWSET
+# -------------------------------------------------------------------
+class BlockedIPViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAdminUser]
+    queryset = BlockedIP.objects.all().order_by("-blocked_at")
+    serializer_class = BlockedIPSerializer
+    parser_classes = [JSONParser]
 
 
 

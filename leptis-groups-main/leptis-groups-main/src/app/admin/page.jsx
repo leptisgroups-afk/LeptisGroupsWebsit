@@ -14,6 +14,12 @@ import { getApiUrl, getCleanImageUrl } from "@/data/config";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 
+const isImageFile = (url) => {
+  if (!url) return false;
+  const cleanUrl = url.split('?')[0].split('#')[0];
+  return /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(cleanUrl);
+};
+
 export default function AdminDashboard() {
     const SETTINGS_URL = getApiUrl("/api/site-settings/");
     const { refreshSettings } = useSiteSettings();
@@ -29,6 +35,10 @@ export default function AdminDashboard() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loginForm, setLoginForm] = useState({ username: "", password: "" });
     const [loginError, setLoginError] = useState("");
+    const [otpRequired, setOtpRequired] = useState(false);
+    const [otpCode, setOtpCode] = useState("");
+    const [sessionKey, setSessionKey] = useState("");
+    const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
     const getAuthHeaders = (extraHeaders = {}) => {
         if (typeof window === "undefined") return {};
@@ -66,6 +76,14 @@ export default function AdminDashboard() {
     const [editingBranchName, setEditingBranchName] = useState("");
     const [branchSubmitStatus, setBranchSubmitStatus] = useState("");
 
+    // Firewall states
+    const BLOCKED_IPS_URL = getApiUrl("/api/blocked-ips/");
+    const [blockedIps, setBlockedIps] = useState([]);
+    const [newIp, setNewIp] = useState("");
+    const [blockReason, setBlockReason] = useState("");
+    const [clientIp, setClientIp] = useState("");
+    const [securityStatus, setSecurityStatus] = useState("");
+
     // Loading & Operation states
     const [loadingData, setLoadingData] = useState(false);
     const [settingsForm, setSettingsForm] = useState({});
@@ -79,6 +97,7 @@ export default function AdminDashboard() {
         home_about_img: null,
         consult_img: null,
         careers_bg: null,
+        brands_bg: null,
     });
 
     // Image Input Refs (to clear them)
@@ -88,6 +107,7 @@ export default function AdminDashboard() {
         home_about_img: useRef(null),
         consult_img: useRef(null),
         careers_bg: useRef(null),
+        brands_bg: useRef(null),
     };
 
     // Offers CRUD State
@@ -138,6 +158,8 @@ export default function AdminDashboard() {
     const [newGalleryImage, setNewGalleryImage] = useState({ title: "", image: null });
     const [gallerySubmitStatus, setGallerySubmitStatus] = useState("");
     const galleryFileInputRef = useRef(null);
+    const [editingGalleryImageId, setEditingGalleryImageId] = useState(null);
+    const [editingGalleryImageTitle, setEditingGalleryImageTitle] = useState("");
 
     // Team Members CRUD State
     const [newTeamMember, setNewTeamMember] = useState({
@@ -347,7 +369,7 @@ export default function AdminDashboard() {
                 }
             };
 
-            const [settRes, appRes, msgRes, evRes, brandRes, projRes, teamRes, branchRes] = await Promise.all([
+            const [settRes, appRes, msgRes, evRes, brandRes, projRes, teamRes, branchRes, blockedRes] = await Promise.all([
                 getOrFallback(SETTINGS_URL, null),
                 getOrFallback(APPLICATIONS_URL, []),
                 getOrFallback(MESSAGES_URL, []),
@@ -355,7 +377,8 @@ export default function AdminDashboard() {
                 getOrFallback(BRAND_LOGOS_URL, []),
                 getOrFallback(PROJECTS_URL, []),
                 getOrFallback(TEAM_MEMBERS_URL, []),
-                getOrFallback(BRANCHES_URL, [])
+                getOrFallback(BRANCHES_URL, []),
+                getOrFallback(BLOCKED_IPS_URL, [])
             ]);
 
             if (settRes) {
@@ -368,6 +391,7 @@ export default function AdminDashboard() {
                 updateImageSpecs("home_about_img", getCleanImageUrl(settRes.home_about_img_url) || "/homeabout.jpg");
                 updateImageSpecs("consult_img", getCleanImageUrl(settRes.consult_img_url) || "/consultbg.png");
                 updateImageSpecs("careers_bg", getCleanImageUrl(settRes.careers_bg_url) || "/ship-bg.jpg");
+                updateImageSpecs("brands_bg", getCleanImageUrl(settRes.brands_bg_url) || "/ship-bg.jpg");
             }
             setApplications(appRes);
             setMessages(msgRes);
@@ -376,6 +400,17 @@ export default function AdminDashboard() {
             setProjects(projRes);
             setTeamMembers(teamRes);
             setBranches(branchRes);
+            setBlockedIps(blockedRes);
+
+            // Fetch client IP
+            try {
+                const ipRes = await axios.get(getApiUrl("/api/check/"));
+                if (ipRes.data && ipRes.data.client_ip) {
+                    setClientIp(ipRes.data.client_ip);
+                }
+            } catch (err) {
+                console.error("Failed to fetch client IP address:", err);
+            }
         } catch (err) {
             console.error("Error loading admin data:", err);
         } finally {
@@ -391,6 +426,14 @@ export default function AdminDashboard() {
                 username: loginForm.username,
                 password: loginForm.password
             });
+            
+            if (response.data.otp_required) {
+                setOtpRequired(true);
+                setSessionKey(response.data.session_key);
+                setLoginError("");
+                return;
+            }
+
             const { token } = response.data;
             if (token) {
                 localStorage.setItem("leptis_admin_token", token);
@@ -420,12 +463,89 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleVerifyOtp = async (e) => {
+        e.preventDefault();
+        setLoginError("");
+        setIsVerifyingOtp(true);
+        try {
+            const response = await axios.post(getApiUrl("/api/verify-otp/"), {
+                session_key: sessionKey,
+                otp: otpCode
+            });
+            const { token } = response.data;
+            if (token) {
+                localStorage.setItem("leptis_admin_token", token);
+                localStorage.setItem("leptis_admin_logged", "true");
+                setIsLoggedIn(true);
+                setLoginError("");
+                setOtpRequired(false);
+                setOtpCode("");
+                setSessionKey("");
+                if (typeof window !== "undefined") {
+                    window.dispatchEvent(new Event("leptis_auth_change"));
+                }
+            } else {
+                setLoginError("Unable to retrieve authentication token.");
+            }
+        } catch (err) {
+            console.error("OTP verification failed:", err);
+            if (err.response && err.response.data) {
+                const errors = err.response.data;
+                if (errors.detail) {
+                    setLoginError(errors.detail);
+                } else if (errors.message) {
+                    setLoginError(errors.message);
+                } else {
+                    setLoginError("OTP verification failed.");
+                }
+            } else {
+                setLoginError("Connection to authentication server failed.");
+            }
+        } finally {
+            setIsVerifyingOtp(false);
+        }
+    };
+
     const handleLogout = () => {
         setIsLoggedIn(false);
         localStorage.removeItem("leptis_admin_logged");
         localStorage.removeItem("leptis_admin_token");
         if (typeof window !== "undefined") {
             window.dispatchEvent(new Event("leptis_auth_change"));
+        }
+    };
+
+    // --- FIREWALL SECURITY CONTROLS ---
+    const handleBlockIp = async (e) => {
+        e.preventDefault();
+        setSecurityStatus("Blocking IP...");
+        try {
+            const res = await axios.post(BLOCKED_IPS_URL, {
+                ip_address: newIp,
+                reason: blockReason || "Manual block"
+            }, getAuthHeaders());
+            
+            setBlockedIps(prev => [res.data, ...prev]);
+            setNewIp("");
+            setBlockReason("");
+            setSecurityStatus("IP blocked successfully.");
+        } catch (err) {
+            console.error("Failed to block IP:", err);
+            const errMsg = err.response?.data?.detail || err.response?.data?.ip_address?.[0] || "Failed to block IP.";
+            setSecurityStatus(`Error: ${errMsg}`);
+        }
+    };
+
+    const handleUnblockIp = async (id) => {
+        setSecurityStatus("Unblocking IP...");
+        try {
+            await axios.delete(`${BLOCKED_IPS_URL}${id}/`, getAuthHeaders());
+            setBlockedIps(prev => prev.filter(item => item.id !== id));
+            setSecurityStatus("IP unblocked successfully.");
+        } catch (err) {
+            console.error("Failed to unblock IP:", err);
+            const errMsg = err.response?.data?.detail || "Failed to unblock IP.";
+            setSecurityStatus(`Error: ${errMsg}`);
         }
     };
 
@@ -471,11 +591,13 @@ export default function AdminDashboard() {
                 key !== 'home_about_img_url' &&
                 key !== 'consult_img_url' &&
                 key !== 'careers_bg_url' &&
+                key !== 'brands_bg_url' &&
                 key !== 'hero_bg' && 
                 key !== 'about_team_img' && 
                 key !== 'home_about_img' && 
                 key !== 'consult_img' &&
-                key !== 'careers_bg'
+                key !== 'careers_bg' &&
+                key !== 'brands_bg'
             ) {
                 data.append(key, settingsForm[key] !== null ? settingsForm[key] : "");
             }
@@ -499,6 +621,7 @@ export default function AdminDashboard() {
             updateImageSpecs("home_about_img", getCleanImageUrl(res.data.home_about_img_url) || "/homeabout.jpg");
             updateImageSpecs("consult_img", getCleanImageUrl(res.data.consult_img_url) || "/consultbg.png");
             updateImageSpecs("careers_bg", getCleanImageUrl(res.data.careers_bg_url) || "/ship-bg.jpg");
+            updateImageSpecs("brands_bg", getCleanImageUrl(res.data.brands_bg_url) || "/ship-bg.jpg");
             
             setSelectedImageSpecs({});
             setSettingImages({
@@ -507,6 +630,7 @@ export default function AdminDashboard() {
                 home_about_img: null,
                 consult_img: null,
                 careers_bg: null,
+                brands_bg: null,
             });
             Object.keys(fileRefs).forEach(key => {
                 if (fileRefs[key].current) fileRefs[key].current.value = "";
@@ -921,6 +1045,34 @@ export default function AdminDashboard() {
         } catch (err) {
             console.error("Delete gallery image error:", err);
             alert("Failed to delete gallery image.");
+        }
+    };
+
+    const handleStartEditGalleryImage = (img) => {
+        setEditingGalleryImageId(img.id);
+        setEditingGalleryImageTitle(img.title || "");
+    };
+
+    const handleCancelEditGalleryImage = () => {
+        setEditingGalleryImageId(null);
+        setEditingGalleryImageTitle("");
+    };
+
+    const handleSaveEditGalleryImage = async (imageId) => {
+        try {
+            setGallerySubmitStatus("Saving image title...");
+            await axios.patch(`${PROJECT_IMAGES_URL}${imageId}/`, {
+                title: editingGalleryImageTitle
+            }, getAuthHeaders());
+            setGallerySubmitStatus("Image title updated successfully!");
+            setEditingGalleryImageId(null);
+            setEditingGalleryImageTitle("");
+            fetchData();
+            setTimeout(() => setGallerySubmitStatus(""), 4000);
+        } catch (err) {
+            console.error("Edit gallery image error:", err);
+            setGallerySubmitStatus("Failed to update image title.");
+            setTimeout(() => setGallerySubmitStatus(""), 4000);
         }
     };
 
@@ -1355,12 +1507,12 @@ export default function AdminDashboard() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Attach PDF Event Details</label>
+                                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Attach PDF or Image Event Details</label>
                                             <div className="relative border-2 border-dashed border-slate-800 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-500/5 transition bg-slate-950/40 flex items-center justify-center cursor-pointer text-center group">
                                                 <input
                                                     type="file"
                                                     name="pdfs"
-                                                    accept=".pdf"
+                                                    accept=".pdf,image/*"
                                                     multiple
                                                     onChange={handleNewEventChange}
                                                     className="absolute inset-0 opacity-0 cursor-pointer"
@@ -1372,7 +1524,7 @@ export default function AdminDashboard() {
                                                     <span className="truncate">
                                                         {newEvent.pdfs.length > 0 
                                                             ? `${newEvent.pdfs.length} files selected` 
-                                                            : "Upload PDF documents"
+                                                            : "Upload PDF or Image files"
                                                         }
                                                     </span>
                                                 </div>
@@ -1456,7 +1608,8 @@ export default function AdminDashboard() {
                                         const expired = isEventExpired(event.expire_date);
                                         const isEditing = editingEventId === event.id;
                                         const firstPdfId = event.pdfs?.[0]?.id;
-                                        const mainThumbnail = event.pdfs?.[0]?.thumbnail_url || "";
+                                        const isFirstFileImage = event.pdfs?.[0]?.pdf_url ? isImageFile(event.pdfs[0].pdf_url) : false;
+                                        const mainThumbnail = event.pdfs?.[0]?.thumbnail_url || (isFirstFileImage ? event.pdfs[0].pdf_url : "");
                                         const hasThumbnailError = firstPdfId ? eventThumbnailErrors[firstPdfId] : false;
                                         
                                         return (
@@ -1904,28 +2057,71 @@ export default function AdminDashboard() {
                                                             <h6 className="font-extrabold text-slate-450 text-xs mb-4 uppercase tracking-wider text-left">Current Sub-Images</h6>
                                                             {project.images && project.images.length > 0 ? (
                                                                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                                                                    {project.images.map((img) => (
-                                                                        <div key={img.id} className="relative group border border-slate-800 bg-slate-900/20 p-2 rounded-xl flex flex-col items-center shadow-md hover:border-slate-700 transition duration-300">
-                                                                            <img
-                                                                                src={getCleanImageUrl(img.image_url || img.image)}
-                                                                                alt={img.title || "Gallery"}
-                                                                                className="w-full h-24 object-cover rounded-lg border border-slate-800"
-                                                                            />
-                                                                            {img.title && (
-                                                                                <span className="text-[9px] font-bold text-slate-450 mt-2 truncate w-full text-center">
-                                                                                    {img.title}
-                                                                                </span>
-                                                                            )}
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleDeleteGalleryImage(img.id)}
-                                                                                className="absolute top-2 right-2 p-1.5 bg-rose-950/50 hover:bg-rose-600 text-rose-450 hover:text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow-md"
-                                                                                title="Delete Gallery Image"
-                                                                            >
-                                                                                <FaTrash className="text-[10px]" />
-                                                                            </button>
-                                                                        </div>
-                                                                    ))}
+                                                                    {project.images.map((img) => {
+                                                                        const isEditing = editingGalleryImageId === img.id;
+                                                                        return (
+                                                                            <div key={img.id} className="relative group border border-slate-800 bg-slate-900/20 p-2 rounded-xl flex flex-col items-center shadow-md hover:border-slate-700 transition duration-300">
+                                                                                <img
+                                                                                    src={getCleanImageUrl(img.image_url || img.image)}
+                                                                                    alt={img.title || "Gallery"}
+                                                                                    className="w-full h-24 object-cover rounded-lg border border-slate-800"
+                                                                                />
+                                                                                {isEditing ? (
+                                                                                    <div className="mt-2 w-full flex items-center gap-1">
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            value={editingGalleryImageTitle}
+                                                                                            onChange={(e) => setEditingGalleryImageTitle(e.target.value)}
+                                                                                            className="w-full border border-slate-700 rounded px-1.5 py-0.5 bg-slate-950 text-[10px] font-semibold text-white outline-none focus:border-blue-500"
+                                                                                            placeholder="Location title"
+                                                                                            autoFocus
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleSaveEditGalleryImage(img.id)}
+                                                                                            className="p-1 bg-emerald-950/50 hover:bg-emerald-600 border border-emerald-900/30 text-emerald-400 hover:text-white rounded transition"
+                                                                                            title="Save Title"
+                                                                                        >
+                                                                                            <FaCheck className="text-[9px]" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={handleCancelEditGalleryImage}
+                                                                                            className="p-1 bg-slate-850 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white rounded transition"
+                                                                                            title="Cancel"
+                                                                                        >
+                                                                                            <FaTimes className="text-[9px]" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <span className="text-[9px] font-bold text-slate-450 mt-2 truncate w-full text-center">
+                                                                                        {img.title || <span className="italic text-slate-605">No title</span>}
+                                                                                    </span>
+                                                                                )}
+                                                                                
+                                                                                {!isEditing && (
+                                                                                    <>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleStartEditGalleryImage(img)}
+                                                                                            className="absolute top-2 left-2 p-1.5 bg-blue-950/50 hover:bg-blue-600 text-blue-400 hover:text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow-md"
+                                                                                            title="Edit Image Title"
+                                                                                        >
+                                                                                            <FaEdit className="text-[10px]" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleDeleteGalleryImage(img.id)}
+                                                                                            className="absolute top-2 right-2 p-1.5 bg-rose-950/50 hover:bg-rose-600 text-rose-450 hover:text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow-md"
+                                                                                            title="Delete Gallery Image"
+                                                                                        >
+                                                                                            <FaTrash className="text-[10px]" />
+                                                                                        </button>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             ) : (
                                                                 <p className="text-slate-500 text-xs py-4 text-center font-medium">No additional gallery images uploaded for this project.</p>
@@ -2625,6 +2821,16 @@ export default function AdminDashboard() {
                                     required
                                 />
                             </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Website Signature</label>
+                                <input
+                                    type="text"
+                                    name="site_signature"
+                                    value={settingsForm.site_signature || ""}
+                                    onChange={handleSettingsChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -2774,6 +2980,34 @@ export default function AdminDashboard() {
                                     {renderSelectedImageSpecs("careers_bg", 2048)}
                                 </div>
                             </div>
+
+                            {/* Item 6: Brands page background */}
+                            <div className="border border-slate-800/80 p-5 rounded-2xl bg-slate-950/30 flex flex-col sm:flex-row gap-5 items-center">
+                                <div className="flex flex-col items-center flex-shrink-0">
+                                    <div className="w-24 h-24 rounded-xl bg-slate-900 overflow-hidden border border-slate-800">
+                                        <img src={getCleanImageUrl(settingsForm.brands_bg_url) || "/ship-bg.jpg"} alt="brands bg" className="w-full h-full object-cover" />
+                                    </div>
+                                    {currentImageSpecs.brands_bg && (
+                                        <div className="flex flex-col items-center text-[9px] font-bold text-slate-400 bg-slate-950 border border-slate-850 px-2 py-0.5 rounded gap-0.5 mt-2 w-24 text-center">
+                                            <span>{currentImageSpecs.brands_bg.size}</span>
+                                            <span className="text-blue-400 font-extrabold">{currentImageSpecs.brands_bg.width}x{currentImageSpecs.brands_bg.height}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-left w-full">
+                                    <h5 className="font-bold text-white text-sm mb-1.5">Brands & Outlets Page Banner Background</h5>
+                                    <input 
+                                        type="file" 
+                                        name="brands_bg" 
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        ref={fileRefs.brands_bg}
+                                        className="text-xs w-full text-slate-455 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20 cursor-pointer"
+                                    />
+                                    <p className="text-[10px] text-slate-500 font-semibold mt-1.5">Recommended: Under 2MB.</p>
+                                    {renderSelectedImageSpecs("brands_bg", 2048)}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2802,6 +3036,107 @@ export default function AdminDashboard() {
         );
     };
 
+    const renderSecurityTab = () => {
+        return (
+            <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl text-left">
+                <h3 className="font-extrabold text-white text-xl mb-2 pb-4 border-b border-slate-800/80">
+                    Firewall Security & Brute-Force Defense
+                </h3>
+                <p className="text-slate-400 text-xs mb-6 font-semibold">
+                    Manage IP blacklists and monitor security firewall protections. Brute-force attacks are automatically blocked.
+                </p>
+
+                {/* Own IP Info */}
+                {clientIp && (
+                    <div className="mb-6 p-4 bg-blue-950/20 border border-blue-500/20 text-blue-300 rounded-2xl text-xs font-bold flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <FaBuilding className="text-blue-400" />
+                            <span>Your current public IP address is: <span className="text-white font-extrabold">{clientIp}</span></span>
+                        </div>
+                        <span className="text-[10px] text-amber-500 uppercase tracking-widest font-black">Warning: Do not block yourself!</span>
+                    </div>
+                )}
+
+                {/* Block IP Form */}
+                <form onSubmit={handleBlockIp} className="space-y-4 mb-8 p-6 border border-slate-800 rounded-2xl bg-slate-950/20">
+                    <h4 className="font-extrabold text-white text-sm uppercase tracking-wider mb-2">Block New IP Address</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-2">IP Address</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. 192.168.1.100"
+                                value={newIp}
+                                onChange={(e) => setNewIp(e.target.value)}
+                                className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-2">Reason for Block</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Suspicious automated scanning"
+                                value={blockReason}
+                                onChange={(e) => setBlockReason(e.target.value)}
+                                className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                        <span className="text-slate-500 text-xs font-semibold">{securityStatus}</span>
+                        <button
+                            type="submit"
+                            className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-xl transition text-xs shadow-lg shadow-rose-900/20"
+                        >
+                            Block IP Address
+                        </button>
+                    </div>
+                </form>
+
+                {/* Blocklist Table */}
+                <div className="space-y-4">
+                    <h4 className="font-extrabold text-white text-sm uppercase tracking-wider">Firewall Blocklist ({blockedIps.length})</h4>
+                    {blockedIps.length > 0 ? (
+                        <div className="overflow-x-auto border border-slate-850 rounded-2xl">
+                            <table className="min-w-full divide-y divide-slate-850 text-left">
+                                <thead className="bg-slate-900/50">
+                                    <tr>
+                                        <th className="py-3.5 px-4 text-xs font-black uppercase text-slate-350 tracking-wider">Blocked IP</th>
+                                        <th className="py-3.5 px-4 text-xs font-black uppercase text-slate-350 tracking-wider">Reason</th>
+                                        <th className="py-3.5 px-4 text-xs font-black uppercase text-slate-350 tracking-wider">Blocked At</th>
+                                        <th className="py-3.5 px-4 text-right text-xs font-black uppercase text-slate-350 tracking-wider">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-850/50">
+                                    {blockedIps.map((item) => (
+                                        <tr key={item.id} className="hover:bg-slate-900/20 transition duration-150">
+                                            <td className="py-3.5 px-4 text-xs font-bold text-white font-mono">{item.ip_address}</td>
+                                            <td className="py-3.5 px-4 text-xs text-slate-400 font-semibold">{item.reason}</td>
+                                            <td className="py-3.5 px-4 text-xs text-slate-500 font-semibold">{new Date(item.blocked_at).toLocaleString()}</td>
+                                            <td className="py-3.5 px-4 text-right">
+                                                <button
+                                                    onClick={() => handleUnblockIp(item.id)}
+                                                    className="px-3.5 py-1.5 bg-slate-900 hover:bg-emerald-600 hover:text-white border border-slate-800 hover:border-transparent text-slate-350 rounded-lg text-[10px] font-black tracking-widest transition"
+                                                >
+                                                    UNBLOCK
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="p-12 text-center border border-dashed border-slate-800 rounded-2xl">
+                            <p className="text-slate-500 text-xs font-medium">No IP addresses are currently blocked by the firewall.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     // --- RENDER LOGIN SCREEN ---
     if (!isLoggedIn) {
         return (
@@ -2821,57 +3156,112 @@ export default function AdminDashboard() {
                         <div className="w-16 h-16 bg-[#194a9a] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/15 text-white text-2xl border border-white/10">
                             <FaLock />
                         </div>
-                        <h2 className="text-2xl font-black text-white tracking-tight">Admin Portal Login</h2>
-                        <p className="text-slate-400 text-xs mt-1.5 font-semibold">Enter your credentials to access the Leptis Control Center</p>
+                        <h2 className="text-2xl font-black text-white tracking-tight">
+                            {otpRequired ? "OTP Verification" : "Admin Portal Login"}
+                        </h2>
+                        <p className="text-slate-400 text-xs mt-1.5 font-semibold">
+                            {otpRequired 
+                                ? "Enter the 6-digit verification code sent to your email" 
+                                : "Enter your credentials to access the Leptis Control Center"}
+                        </p>
                     </div>
 
-                    <form onSubmit={handleLogin} className="space-y-5">
-                        <div>
-                            <label className="block text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-2">Username</label>
-                            <div className="flex items-center border border-slate-800 rounded-xl px-4 py-3 bg-slate-950/40 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-300">
-                                <FaUser className="text-slate-500 mr-3 text-xs" />
-                                <input
-                                    type="text"
-                                    name="username"
-                                    placeholder="Enter username"
-                                    value={loginForm.username}
-                                    onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                                    className="w-full bg-transparent outline-none text-white text-sm placeholder-slate-650 font-semibold"
-                                    required
-                                />
+                    {!otpRequired ? (
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            <div>
+                                <label className="block text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-2">Username</label>
+                                <div className="flex items-center border border-slate-800 rounded-xl px-4 py-3 bg-slate-950/40 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-300">
+                                    <FaUser className="text-slate-500 mr-3 text-xs" />
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        placeholder="Enter username"
+                                        value={loginForm.username}
+                                        onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                                        className="w-full bg-transparent outline-none text-white text-sm placeholder-slate-650 font-semibold"
+                                        required
+                                    />
+                                </div>
                             </div>
-                        </div>
 
-                        <div>
-                            <label className="block text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-2">Password</label>
-                            <div className="flex items-center border border-slate-800 rounded-xl px-4 py-3 bg-slate-950/40 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-300">
-                                <FaLock className="text-slate-500 mr-3 text-xs" />
-                                <input
-                                    type="password"
-                                    name="password"
-                                    placeholder="Enter password"
-                                    value={loginForm.password}
-                                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                                    className="w-full bg-transparent outline-none text-white text-sm placeholder-slate-650 font-semibold"
-                                    required
-                                />
+                            <div>
+                                <label className="block text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-2">Password</label>
+                                <div className="flex items-center border border-slate-800 rounded-xl px-4 py-3 bg-slate-950/40 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-300">
+                                    <FaLock className="text-slate-500 mr-3 text-xs" />
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        placeholder="Enter password"
+                                        value={loginForm.password}
+                                        onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                                        className="w-full bg-transparent outline-none text-white text-sm placeholder-slate-650 font-semibold"
+                                        required
+                                    />
+                                </div>
                             </div>
-                        </div>
 
-                        {loginError && (
-                            <div className="p-3.5 bg-rose-950/20 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-bold flex items-center gap-2.5 animate-pulse">
-                                <FaExclamationTriangle className="flex-shrink-0" />
-                                <span>{loginError}</span>
+                            {loginError && (
+                                <div className="p-3.5 bg-rose-950/20 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-bold flex items-center gap-2.5 animate-pulse">
+                                    <FaExclamationTriangle className="flex-shrink-0" />
+                                    <span>{loginError}</span>
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                className="w-full py-4 bg-[#194a9a] hover:bg-blue-600 hover:-translate-y-0.5 active:translate-y-0 active:scale-98 text-white font-extrabold rounded-xl transition-all duration-300 shadow-lg shadow-blue-900/20 text-sm border border-white/5"
+                            >
+                                Log In Securely
+                            </button>
+                        </form>
+                    ) : (
+                        <form onSubmit={handleVerifyOtp} className="space-y-5">
+                            <div>
+                                <label className="block text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-2">Verification Code</label>
+                                <div className="flex items-center border border-slate-800 rounded-xl px-4 py-3 bg-slate-950/40 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all duration-300">
+                                    <FaLock className="text-slate-500 mr-3 text-xs" />
+                                    <input
+                                        type="text"
+                                        name="otp"
+                                        maxLength={6}
+                                        placeholder="Enter 6-digit code"
+                                        value={otpCode}
+                                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                                        className="w-full bg-transparent outline-none text-white text-sm placeholder-slate-650 font-semibold tracking-widest text-center font-mono"
+                                        required
+                                    />
+                                </div>
                             </div>
-                        )}
 
-                        <button
-                            type="submit"
-                            className="w-full py-4 bg-[#194a9a] hover:bg-blue-600 hover:-translate-y-0.5 active:translate-y-0 active:scale-98 text-white font-extrabold rounded-xl transition-all duration-300 shadow-lg shadow-blue-900/20 text-sm border border-white/5"
-                        >
-                            Log In Securely
-                        </button>
-                    </form>
+                            {loginError && (
+                                <div className="p-3.5 bg-rose-950/20 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-bold flex items-center gap-2.5 animate-pulse">
+                                    <FaExclamationTriangle className="flex-shrink-0" />
+                                    <span>{loginError}</span>
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={isVerifyingOtp}
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-98 text-white font-extrabold rounded-xl transition-all duration-300 shadow-lg shadow-emerald-900/20 text-sm border border-white/5 disabled:opacity-50"
+                            >
+                                {isVerifyingOtp ? "Verifying..." : "Verify Code"}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setOtpRequired(false);
+                                    setOtpCode("");
+                                    setSessionKey("");
+                                    setLoginError("");
+                                }}
+                                className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-extrabold rounded-xl transition-all duration-300 text-xs border border-white/5"
+                            >
+                                Back to Username/Password
+                            </button>
+                        </form>
+                    )}
                 </motion.div>
             </div>
         );
@@ -2915,7 +3305,8 @@ export default function AdminDashboard() {
                             { id: "projects", label: "Projects Portfolio", icon: <FaDatabase />, badge: projects.length },
                             { id: "team", label: "Our Team", icon: <FaUser />, badge: teamMembers.length },
                             { id: "branches", label: "Manage Branches", icon: <FaMapMarkerAlt />, badge: branches.length },
-                            { id: "settings", label: "Site Settings", icon: <FaCog /> }
+                            { id: "settings", label: "Site Settings", icon: <FaCog /> },
+                            { id: "security", label: "Firewall Security", icon: <FaLock /> }
                         ].map((item) => {
                             const isActive = activeTab === item.id;
                             return (
@@ -3015,6 +3406,7 @@ export default function AdminDashboard() {
                             {activeTab === "team" && renderTeamTab()}
                             {activeTab === "branches" && renderBranchesTab()}
                             {activeTab === "settings" && renderSettingsTab()}
+                            {activeTab === "security" && renderSecurityTab()}
                         </motion.div>
                     </AnimatePresence>
                 </div>

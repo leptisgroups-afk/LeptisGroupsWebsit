@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
-    BrandLogo, Project, ProjectImage, TeamMember, Branch
+    BrandLogo, Project, ProjectImage, TeamMember, Branch, BlockedIP
 )
 
 
@@ -85,6 +85,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     home_about_img_url = serializers.SerializerMethodField()
     consult_img_url = serializers.SerializerMethodField()
     careers_bg_url = serializers.SerializerMethodField()
+    brands_bg_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SiteSettings
@@ -118,6 +119,12 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         if obj.careers_bg:
             request = self.context.get("request")
             return request.build_absolute_uri(obj.careers_bg.url) if request else obj.careers_bg.url
+        return None
+
+    def get_brands_bg_url(self, obj):
+        if obj.brands_bg:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.brands_bg.url) if request else obj.brands_bg.url
         return None
 
 
@@ -198,5 +205,15 @@ class TeamMemberSerializer(serializers.ModelSerializer):
             request = self.context.get("request")
             return request.build_absolute_uri(obj.image.url) if request else obj.image.url
         return None
+
+
+# -------------------------------------------------------------------
+# BLOCKED IP SERIALIZER
+# -------------------------------------------------------------------
+class BlockedIPSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlockedIP
+        fields = ["id", "ip_address", "reason", "blocked_at"]
+
 
 

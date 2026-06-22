@@ -18,6 +18,7 @@ export default function Footer() {
     const linkedinUrl = settings?.linkedin_url || "#";
     const twitterUrl = settings?.twitter_url || "#";
     const copyrightText = settings?.copyright_text || "Leptis Group. All rights reserved.";
+    const siteSignature = settings?.site_signature !== undefined ? settings.site_signature : "ibill software solutions llc";
 
     return (
         <footer className="bg-[#080b11] text-slate-400 py-16 px-6 md:px-16 border-t border-white/5 relative overflow-hidden font-sans">
@@ -115,7 +116,17 @@ export default function Footer() {
 
             {/* Bottom Copyright Section */}
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs font-semibold text-slate-500 pt-8 relative z-10">
-                <p>© {new Date().getFullYear()} {copyrightText}</p>
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 text-center md:text-left">
+                    <p>© {new Date().getFullYear()} {copyrightText}</p>
+                    {siteSignature && (
+                        <>
+                            <span className="hidden md:inline text-slate-700">|</span>
+                            <p className="text-slate-500">
+                                Site by <span className="text-slate-400 hover:text-amber-500 transition-colors duration-300 font-semibold">{siteSignature}</span>
+                            </p>
+                        </>
+                    )}
+                </div>
                 <div className="flex space-x-6 mt-4 md:mt-0">
                     <a href="#" className="hover:text-slate-400 transition-colors">Terms of Service</a>
                     <a href="#" className="hover:text-slate-400 transition-colors">Privacy Policy</a>

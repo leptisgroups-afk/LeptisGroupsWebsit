@@ -152,6 +152,13 @@ class SiteSettings(models.Model):
         max_length=255, 
         default="Leptis Group. All rights reserved."
     )
+    site_signature = models.CharField(
+        max_length=255,
+        default="ibill software solutions llc",
+        blank=True,
+        null=True
+    )
+
 
     # Editable page images
     hero_bg = models.ImageField(upload_to="settings/", blank=True, null=True)
@@ -159,6 +166,7 @@ class SiteSettings(models.Model):
     home_about_img = models.ImageField(upload_to="settings/", blank=True, null=True)
     consult_img = models.ImageField(upload_to="settings/", blank=True, null=True)
     careers_bg = models.ImageField(upload_to="settings/", blank=True, null=True)
+    brands_bg = models.ImageField(upload_to="settings/", blank=True, null=True)
 
     class Meta:
         verbose_name = "Site Settings"
@@ -237,6 +245,46 @@ class TeamMember(models.Model):
 
     def __str__(self):
         return self.name
+
+
+# -----------------------------
+# Admin OTP Model
+# -----------------------------
+import uuid
+
+class AdminOTP(models.Model):
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    session_key = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    is_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"OTP for {self.user.username} at {self.created_at}"
+
+
+# -----------------------------
+# Firewall Blocked IP Model
+# -----------------------------
+class BlockedIP(models.Model):
+    ip_address = models.GenericIPAddressField(unique=True)
+    reason = models.CharField(max_length=255, blank=True, default="Manual block")
+    blocked_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.ip_address} (Blocked at: {self.blocked_at})"
+
+
+# -----------------------------
+# Failed Login Attempt Model
+# -----------------------------
+class FailedLoginAttempt(models.Model):
+    ip_address = models.GenericIPAddressField()
+    username = models.CharField(max_length=150, blank=True)
+    attempted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Failed login for {self.username} from {self.ip_address} at {self.attempted_at}"
 
 
 # -----------------------------

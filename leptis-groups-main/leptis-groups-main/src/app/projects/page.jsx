@@ -8,8 +8,10 @@ import { FaBuilding, FaArrowRight } from "react-icons/fa";
 import axios from "axios";
 import { getApiUrl, getCleanImageUrl } from "@/data/config";
 import { motion } from "framer-motion";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export default function Projects() {
+    const { settings } = useSiteSettings();
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -72,7 +74,7 @@ export default function Projects() {
                 <section
                     className="relative w-full h-[280px] sm:h-[320px] flex items-center justify-start text-white overflow-hidden"
                     style={{
-                        backgroundImage: `linear-gradient(to right, rgba(7, 11, 17, 0.98) 30%, rgba(15, 23, 42, 0.7) 100%), url('/ship-bg.jpg')`,
+                        backgroundImage: `linear-gradient(to right, rgba(7, 11, 17, 0.98) 30%, rgba(15, 23, 42, 0.7) 100%), url('${getCleanImageUrl(settings?.brands_bg_url) || "/ship-bg.jpg"}')`,
                         backgroundSize: "cover",
                         backgroundPosition: "center right",
                         backgroundRepeat: "no-repeat",

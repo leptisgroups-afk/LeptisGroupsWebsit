@@ -41,7 +41,7 @@ export const getApiUrl = (path) => {
  * This fixes image/media rendering on external devices connected to the same network.
  */
 export const getCleanImageUrl = (url) => {
-  if (!url) return url;
+  if (!url || typeof url !== "string") return url;
   const backendUrl = getBackendUrl();
   
   // Handle relative media paths
