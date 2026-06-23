@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from offers.views import serve_secure_cv, admin_login, verify_otp
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('django-admin/', admin.site.urls),
     path('api/login/', admin_login, name='api_token_auth'),
     path('api/verify-otp/', verify_otp, name='api_verify_otp'),
     path('media/cvs/<str:filename>', serve_secure_cv, name='serve_secure_cv'),
