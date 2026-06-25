@@ -9,10 +9,10 @@ color 0B
 cls
 
 :: Default AWS EC2 Connection Details
-set "PEM_KEY=C:\Users\office1\Downloads\LeptisGroups.pem"
-set "REMOTE_USER=ubuntu"
-set "REMOTE_IP=13.60.23.206"
-set "REMOTE_PATH=/home/ubuntu/LeptisGroupsWebsite"
+set "PEM_KEY=D:\LeptisGroup\landingweb.pem"
+set "REMOTE_USER=ec2-user"
+set "REMOTE_IP=13.48.43.4"
+set "REMOTE_PATH=/home/ec2-user/leptis-groups"
 
 :: Check if git is installed
 where git >nul 2>&1
