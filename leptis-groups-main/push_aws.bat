@@ -38,42 +38,158 @@ if not exist .git (
 :menu
 cls
 echo =======================================================================
-echo                 LEPTIS GROUP AWS AUTO-PUSH UTILITY
+echo                 LEPTIS GROUP AWS AUTO-PUSH & DEPLOY UTILITY
 echo =======================================================================
-echo  Deploy and push code to Git & data files to AWS EC2 instance.
+echo  Deploy and sync code and data files to AWS EC2 instance directly.
 echo =======================================================================
 echo.
-echo  [1] Quick Push Code (Stage, Commit, and Push to GitHub)
-echo  [2] Start Code File Watcher (Continuous Auto-Push to GitHub)
-echo  [3] Push SQLite Database (db.sqlite3) to AWS via SCP
-echo  [4] Push Media Uploads (media/) to AWS via SCP
-echo  [5] Push Full File & Data (Database + Media + Code) to AWS
-echo  [6] Check Git Status
+echo  [1] Deploy Code to AWS (Create Tarball, SCP, Remote Build & Restart)
+echo  [2] Push SQLite Database (db.sqlite3) to AWS via SCP
+echo  [3] Push Media Uploads (media/) to AWS via SCP
+echo  [4] Full Deployment to AWS (Deploy Code + Database + Media + Restart)
+echo  [5] Push Code to GitHub (Stage, Commit, and Push)
+echo  [6] Start GitHub Auto-Push Watcher (Continuous Local-to-GitHub sync)
 echo  [7] Run Next.js Build Check (Local verification)
-echo  [8] Git Pull (Sync local repository)
+echo  [8] Check Git Status
 echo  [9] Exit
 echo.
 echo =======================================================================
 set /p CHOICE="Select an option (1-9): "
 
-if "%CHOICE%"=="1" goto quick_push
-if "%CHOICE%"=="2" goto start_watcher
-if "%CHOICE%"=="3" goto push_db
-if "%CHOICE%"=="4" goto push_media
-if "%CHOICE%"=="5" goto push_full
-if "%CHOICE%"=="6" goto git_status
+if "%CHOICE%"=="1" goto deploy_code
+if "%CHOICE%"=="2" goto push_db
+if "%CHOICE%"=="3" goto push_media
+if "%CHOICE%"=="4" goto deploy_full
+if "%CHOICE%"=="5" goto quick_push
+if "%CHOICE%"=="6" goto start_watcher
 if "%CHOICE%"=="7" goto build_check
-if "%CHOICE%"=="8" goto git_pull
+if "%CHOICE%"=="8" goto git_status
 if "%CHOICE%"=="9" exit /b
+goto menu
+
+:deploy_code
+call :setup_scp
+cls
+echo =======================================================================
+echo  DEPLOYING CODE TO AWS VIA SCP & TARBALL
+echo =======================================================================
+echo.
+echo [1/4] Creating local deployment tarball...
+if exist deploy.tar.gz del deploy.tar.gz
+
+tar --exclude="leptis-groups-main/env" --exclude="leptis-groups-main/leptis-groups-main/node_modules" --exclude="leptis-groups-main/leptis-groups-main/.next" --exclude=".git" -czf deploy.tar.gz leptis-groups-main
+
+if %errorlevel% neq 0 (
+    echo [ERROR] Failed to create local tarball.
+    pause
+    goto menu
+)
+
+echo.
+echo [2/4] Uploading tarball to AWS via SCP...
+scp -i "%PEM_KEY%" deploy.tar.gz %REMOTE_USER%@%REMOTE_IP%:/home/%REMOTE_USER%/deploy.tar.gz
+if %errorlevel% neq 0 (
+    echo [ERROR] SCP upload failed.
+    if exist deploy.tar.gz del deploy.tar.gz
+    pause
+    goto menu
+)
+if exist deploy.tar.gz del deploy.tar.gz
+
+echo.
+echo [3/4] Extracting tarball on remote AWS server...
+ssh -i "%PEM_KEY%" %REMOTE_USER%@%REMOTE_IP% "cd %REMOTE_PATH% && tar -xzf /home/%REMOTE_USER%/deploy.tar.gz"
+if %errorlevel% neq 0 (
+    echo [ERROR] Extraction failed on remote server.
+    pause
+    goto menu
+)
+
+echo.
+echo [4/4] Building Next.js and restarting backend/frontend services...
+ssh -i "%PEM_KEY%" %REMOTE_USER%@%REMOTE_IP% "cd %REMOTE_PATH%/leptis-groups-main/leptis-groups-main && npm run build && pm2 restart nextjs-frontend && sudo systemctl restart django.service"
+if %errorlevel% equ 0 (
+    echo.
+    echo =======================================================================
+    echo [SUCCESS] Code deployed, built, and restarted successfully!
+    echo =======================================================================
+) else (
+    echo.
+    echo =======================================================================
+    echo [ERROR] Remote build or restart failed.
+    echo =======================================================================
+)
+pause
+goto menu
+
+:deploy_full
+call :setup_scp
+cls
+echo =======================================================================
+echo  FULL DEPLOYMENT TO AWS (Code + Database + Media + Restart)
+echo =======================================================================
+echo.
+echo [1/5] Creating local deployment tarball...
+if exist deploy.tar.gz del deploy.tar.gz
+
+tar --exclude="leptis-groups-main/env" --exclude="leptis-groups-main/leptis-groups-main/node_modules" --exclude="leptis-groups-main/leptis-groups-main/.next" --exclude=".git" -czf deploy.tar.gz leptis-groups-main
+
+if %errorlevel% neq 0 (
+    echo [ERROR] Failed to create local tarball.
+    pause
+    goto menu
+)
+
+echo.
+echo [2/5] Uploading tarball to AWS via SCP...
+scp -i "%PEM_KEY%" deploy.tar.gz %REMOTE_USER%@%REMOTE_IP%:/home/%REMOTE_USER%/deploy.tar.gz
+if %errorlevel% neq 0 (
+    echo [ERROR] SCP upload failed.
+    if exist deploy.tar.gz del deploy.tar.gz
+    pause
+    goto menu
+)
+if exist deploy.tar.gz del deploy.tar.gz
+
+echo.
+echo [3/5] Uploading database (db.sqlite3)...
+if exist "leptis-groups-main\backend\db.sqlite3" (
+    scp -i "%PEM_KEY%" "leptis-groups-main\backend\db.sqlite3" "%REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/db.sqlite3"
+) else (
+    echo [WARN] db.sqlite3 not found locally. Skipping database upload.
+)
+
+echo.
+echo [4/5] Uploading media uploads folder...
+if exist "leptis-groups-main\backend\media" (
+    scp -r -i "%PEM_KEY%" "leptis-groups-main\backend\media" "%REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/"
+) else (
+    echo [WARN] Media folder not found locally. Skipping media upload.
+)
+
+echo.
+echo [5/5] Extracting, building, and restarting remote services...
+ssh -i "%PEM_KEY%" %REMOTE_USER%@%REMOTE_IP% "cd %REMOTE_PATH% && tar -xzf /home/%REMOTE_USER%/deploy.tar.gz && cd leptis-groups-main/leptis-groups-main && npm run build && pm2 restart nextjs-frontend && sudo systemctl restart django.service"
+if %errorlevel% equ 0 (
+    echo.
+    echo =======================================================================
+    echo [SUCCESS] Full deployment completed successfully!
+    echo =======================================================================
+) else (
+    echo.
+    echo =======================================================================
+    echo [ERROR] Remote build or restart failed.
+    echo =======================================================================
+)
+pause
 goto menu
 
 :quick_push
 cls
 echo =======================================================================
-echo  QUICK PUSH TO GITHUB (AWS DEPLOY)
+echo  PUSH CODE TO GITHUB
 echo =======================================================================
 echo.
-:: Verify if there are any changes to stage/commit
 set "CHANGES_EXIST="
 for /f "delims=" %%i in ('git status --porcelain') do (
     set CHANGES_EXIST=1
@@ -104,12 +220,12 @@ if %errorlevel% neq 0 (
 )
 echo [+] Pulling latest changes from remote to prevent conflicts...
 git pull origin main --rebase
-echo [+] Pushing changes to AWS (GitHub)...
+echo [+] Pushing changes to GitHub...
 git push origin main
 if %errorlevel% equ 0 (
     echo.
     echo =======================================================================
-    echo [SUCCESS] Changes pushed successfully! AWS build should start shortly.
+    echo [SUCCESS] Changes pushed to GitHub successfully!
     echo =======================================================================
 ) else (
     echo.
@@ -124,7 +240,7 @@ goto menu
 :start_watcher
 cls
 echo =======================================================================
-echo                 AWS AUTO-PUSH WATCHER STARTED
+echo                 GITHUB AUTO-PUSH WATCHER STARTED
 echo =======================================================================
 echo  Watching for any file updates in the repository...
 echo  (Press Ctrl+C at any time to stop the watcher)
@@ -144,7 +260,7 @@ if defined HAS_CHANGES (
     git commit -m "!WATCH_MSG!"
     echo [+] Pulling remote updates...
     git pull origin main --rebase
-    echo [+] Pushing to AWS (GitHub)...
+    echo [+] Pushing to GitHub...
     git push origin main
     if !errorlevel! equ 0 (
         echo [OK] Auto-pushed changes successfully at !time!
@@ -229,44 +345,6 @@ if %errorlevel% equ 0 (
 pause
 goto menu
 
-:push_full
-call :setup_scp
-cls
-echo =======================================================================
-echo  FULL FILE & DATA UPLOAD TO AWS (Git Push + SCP Database + SCP Media)
-echo =======================================================================
-echo.
-echo [1/3] Staging and pushing code updates to GitHub...
-:: Check if there are changes
-set "CHANGES_EXIST="
-for /f "delims=" %%i in ('git status --porcelain') do (
-    set CHANGES_EXIST=1
-)
-if defined CHANGES_EXIST (
-    git add .
-    git commit -m "Auto-update: %date% %time%"
-    git pull origin main --rebase
-    git push origin main
-    echo [+] Code pushed to GitHub successfully.
-) else (
-    echo [+] Code is already up to date on GitHub.
-)
-
-echo.
-echo [2/3] Uploading database (db.sqlite3)...
-scp -i "%PEM_KEY%" "leptis-groups-main\backend\db.sqlite3" "%REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/db.sqlite3"
-
-echo.
-echo [3/3] Uploading media uploads folder...
-scp -r -i "%PEM_KEY%" "leptis-groups-main\backend\media" "%REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/"
-
-echo.
-echo =======================================================================
-echo  FULL DEPLOYMENT COMPLETE
-echo =======================================================================
-pause
-goto menu
-
 :git_status
 cls
 echo =======================================================================
@@ -299,13 +377,3 @@ echo.
 pause
 goto menu
 
-:git_pull
-cls
-echo =======================================================================
-echo  SYNCING WITH AWS (GIT PULL)
-echo =======================================================================
-echo.
-git pull origin main
-echo.
-pause
-goto menu
