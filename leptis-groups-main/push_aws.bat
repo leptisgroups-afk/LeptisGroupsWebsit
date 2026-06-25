@@ -8,6 +8,12 @@ title Leptis Group AWS Auto-Deployer
 color 0B
 cls
 
+:: Default AWS EC2 Connection Details
+set "PEM_KEY=C:\Users\office1\Downloads\LeptisGroups.pem"
+set "REMOTE_USER=ubuntu"
+set "REMOTE_IP=13.60.23.206"
+set "REMOTE_PATH=/home/ubuntu/LeptisGroupsWebsite"
+
 :: Check if git is installed
 where git >nul 2>&1
 if %errorlevel% neq 0 (
@@ -29,79 +35,66 @@ if not exist .git (
     exit /b 1
 )
 
-:: Validate Git Configurations
-git config user.name >nul 2>&1
-set NO_NAME=%errorlevel%
-git config user.email >nul 2>&1
-set NO_EMAIL=%errorlevel%
-
-if %NO_NAME% neq 0 (
-    echo [WARNING] Git user.name is not configured locally. Commits may fail.
-)
-if %NO_EMAIL% neq 0 (
-    echo [WARNING] Git user.email is not configured locally. Commits may fail.
-)
-
 :menu
 cls
 echo =======================================================================
 echo                 LEPTIS GROUP AWS AUTO-PUSH UTILITY
 echo =======================================================================
-echo  This script pushes updates to GitHub, which automatically deploys to AWS.
+echo  Deploy and push code to Git & data files to AWS EC2 instance.
 echo =======================================================================
 echo.
-echo  [1] Quick Push (Stage, Commit with message, and Push)
-echo  [2] Start File Watcher (Continuous Auto-Push on change)
-echo  [3] Check Git Status
-echo  [4] Run Next.js Build Check (Local verification)
-echo  [5] Git Pull (Sync local repository)
-echo  [6] Exit
+echo  [1] Quick Push Code (Stage, Commit, and Push to GitHub)
+echo  [2] Start Code File Watcher (Continuous Auto-Push to GitHub)
+echo  [3] Push SQLite Database (db.sqlite3) to AWS via SCP
+echo  [4] Push Media Uploads (media/) to AWS via SCP
+echo  [5] Push Full File & Data (Database + Media + Code) to AWS
+echo  [6] Check Git Status
+echo  [7] Run Next.js Build Check (Local verification)
+echo  [8] Git Pull (Sync local repository)
+echo  [9] Exit
 echo.
 echo =======================================================================
-set /p CHOICE="Select an option (1-6): "
+set /p CHOICE="Select an option (1-9): "
 
 if "%CHOICE%"=="1" goto quick_push
 if "%CHOICE%"=="2" goto start_watcher
-if "%CHOICE%"=="3" goto git_status
-if "%CHOICE%"=="4" goto build_check
-if "%CHOICE%"=="5" goto git_pull
-if "%CHOICE%"=="6" exit /b
+if "%CHOICE%"=="3" goto push_db
+if "%CHOICE%"=="4" goto push_media
+if "%CHOICE%"=="5" goto push_full
+if "%CHOICE%"=="6" goto git_status
+if "%CHOICE%"=="7" goto build_check
+if "%CHOICE%"=="8" goto git_pull
+if "%CHOICE%"=="9" exit /b
 goto menu
 
 :quick_push
 cls
 echo =======================================================================
-echo  QUICK PUSH TO AWS
+echo  QUICK PUSH TO GITHUB (AWS DEPLOY)
 echo =======================================================================
 echo.
-
 :: Verify if there are any changes to stage/commit
 set "CHANGES_EXIST="
 for /f "delims=" %%i in ('git status --porcelain') do (
     set CHANGES_EXIST=1
 )
-
 if not defined CHANGES_EXIST (
     echo [INFO] No changes detected. Your local repository is already clean.
     echo.
     pause
     goto menu
 )
-
 echo [+] Changes detected:
 git status -s
 echo.
-
 set "COMMIT_MSG="
 set /p COMMIT_MSG="Enter commit message (or press Enter for auto-timestamp): "
 if "%COMMIT_MSG%"=="" (
     set "COMMIT_MSG=Auto-update: %date% %time%"
 )
-
 echo.
 echo [+] Staging all changes (git add .)...
 git add .
-
 echo [+] Committing changes...
 git commit -m "%COMMIT_MSG%"
 if %errorlevel% neq 0 (
@@ -109,14 +102,8 @@ if %errorlevel% neq 0 (
     pause
     goto menu
 )
-
 echo [+] Pulling latest changes from remote to prevent conflicts...
 git pull origin main --rebase
-if %errorlevel% neq 0 (
-    echo [WARN] Git pull failed or encountered conflicts.
-    echo Please resolve conflicts manually if needed.
-)
-
 echo [+] Pushing changes to AWS (GitHub)...
 git push origin main
 if %errorlevel% equ 0 (
@@ -143,28 +130,20 @@ echo  Watching for any file updates in the repository...
 echo  (Press Ctrl+C at any time to stop the watcher)
 echo =======================================================================
 echo.
-
 :watch_loop
-:: Wait 5 seconds before checking again
 timeout /t 5 >nul
-
-:: Check git status
 set "HAS_CHANGES="
 for /f "delims=" %%i in ('git status --porcelain') do (
     set HAS_CHANGES=1
 )
-
 if defined HAS_CHANGES (
     echo [+] File changes detected at %time%
     echo [+] Staging and committing...
     git add .
-    
     set "WATCH_MSG=Auto-update: %date% %time%"
     git commit -m "!WATCH_MSG!"
-    
     echo [+] Pulling remote updates...
     git pull origin main --rebase
-    
     echo [+] Pushing to AWS (GitHub)...
     git push origin main
     if !errorlevel! equ 0 (
@@ -176,6 +155,117 @@ if defined HAS_CHANGES (
     echo.
 )
 goto watch_loop
+
+:setup_scp
+cls
+echo =======================================================================
+echo  CONFIRM AWS EC2 CONNECTION DETAILS
+echo =======================================================================
+echo  1. Key Path:  %PEM_KEY%
+echo  2. Remote IP:  %REMOTE_IP%
+echo  3. User:       %REMOTE_USER%
+echo  4. Dest Dir:   %REMOTE_PATH%
+echo =======================================================================
+echo.
+set /p CONFIRM="Are these details correct? (Y/N): "
+if /i "%CONFIRM%" neq "Y" (
+    echo.
+    set /p PEM_KEY="Enter path to .pem file (e.g. C:\path\to\key.pem): "
+    set /p REMOTE_IP="Enter Remote Server IP: "
+    set /p REMOTE_USER="Enter SSH Username (e.g. ubuntu): "
+    set /p REMOTE_PATH="Enter Destination Path (e.g. /home/ubuntu/LeptisGroupsWebsite): "
+)
+goto :eof
+
+:push_db
+call :setup_scp
+cls
+echo =======================================================================
+echo  UPLOADING SQLITE DATABASE TO AWS
+echo =======================================================================
+echo.
+if not exist "leptis-groups-main\backend\db.sqlite3" (
+    echo [ERROR] db.sqlite3 not found locally at leptis-groups-main\backend\db.sqlite3
+    pause
+    goto menu
+)
+echo [+] File: leptis-groups-main/backend/db.sqlite3
+echo [+] Destination: %REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/db.sqlite3
+echo.
+scp -i "%PEM_KEY%" "leptis-groups-main\backend\db.sqlite3" "%REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/db.sqlite3"
+if %errorlevel% equ 0 (
+    echo.
+    echo [SUCCESS] Database uploaded successfully!
+) else (
+    echo.
+    echo [ERROR] Upload failed. Please verify SSH key and remote path permissions.
+)
+pause
+goto menu
+
+:push_media
+call :setup_scp
+cls
+echo =======================================================================
+echo  UPLOADING MEDIA FILES TO AWS
+echo =======================================================================
+echo.
+if not exist "leptis-groups-main\backend\media" (
+    echo [ERROR] Media folder not found locally.
+    pause
+    goto menu
+)
+echo [+] Folder: leptis-groups-main/backend/media
+echo [+] Destination: %REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/media
+echo.
+scp -r -i "%PEM_KEY%" "leptis-groups-main\backend\media" "%REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/"
+if %errorlevel% equ 0 (
+    echo.
+    echo [SUCCESS] Media folder uploaded successfully!
+) else (
+    echo.
+    echo [ERROR] Upload failed. Please verify SSH key and remote path permissions.
+)
+pause
+goto menu
+
+:push_full
+call :setup_scp
+cls
+echo =======================================================================
+echo  FULL FILE & DATA UPLOAD TO AWS (Git Push + SCP Database + SCP Media)
+echo =======================================================================
+echo.
+echo [1/3] Staging and pushing code updates to GitHub...
+:: Check if there are changes
+set "CHANGES_EXIST="
+for /f "delims=" %%i in ('git status --porcelain') do (
+    set CHANGES_EXIST=1
+)
+if defined CHANGES_EXIST (
+    git add .
+    git commit -m "Auto-update: %date% %time%"
+    git pull origin main --rebase
+    git push origin main
+    echo [+] Code pushed to GitHub successfully.
+) else (
+    echo [+] Code is already up to date on GitHub.
+)
+
+echo.
+echo [2/3] Uploading database (db.sqlite3)...
+scp -i "%PEM_KEY%" "leptis-groups-main\backend\db.sqlite3" "%REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/db.sqlite3"
+
+echo.
+echo [3/3] Uploading media uploads folder...
+scp -r -i "%PEM_KEY%" "leptis-groups-main\backend\media" "%REMOTE_USER%@%REMOTE_IP%:%REMOTE_PATH%/leptis-groups-main/backend/"
+
+echo.
+echo =======================================================================
+echo  FULL DEPLOYMENT COMPLETE
+echo =======================================================================
+pause
+goto menu
 
 :git_status
 cls
