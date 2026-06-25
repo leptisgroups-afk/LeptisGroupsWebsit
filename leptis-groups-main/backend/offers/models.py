@@ -167,6 +167,21 @@ class SiteSettings(models.Model):
     consult_img = models.ImageField(upload_to="settings/", blank=True, null=True)
     careers_bg = models.ImageField(upload_to="settings/", blank=True, null=True)
     brands_bg = models.ImageField(upload_to="settings/", blank=True, null=True)
+    site_logo = models.ImageField(upload_to="settings/", blank=True, null=True)
+    share_image = models.ImageField(upload_to="settings/", blank=True, null=True)
+
+    # SEO & Sharing Metadata
+    meta_title = models.CharField(max_length=255, default="Leptis Group")
+    meta_description = models.TextField(default="Leptis Group - Logistics, Global Trading, Supermarkets & Fresh Produce")
+    meta_keywords = models.CharField(max_length=500, default="leptis, leptis group, logistics, trading, supermarket, fresh produce")
+
+    # Founder / Leadership Quote
+    founder_quote = models.TextField(
+        default="True business leadership isn't just about expansion; it's about building a trusted legacy of innovation, inclusivity, and long-term value for every community we serve."
+    )
+    founder_name = models.CharField(max_length=255, default="Ahamed Remil")
+    founder_title = models.CharField(max_length=255, default="Founder & Chairman")
+    founder_image = models.ImageField(upload_to="settings/", blank=True, null=True)
 
     class Meta:
         verbose_name = "Site Settings"
@@ -312,6 +327,59 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
                 os.remove(instance.thumbnail.path)
             except Exception as e:
                 print(f"Error deleting thumbnail file {instance.thumbnail.path}: {e}")
+
+
+# -----------------------------
+# Timeline Milestone Model
+# -----------------------------
+class TimelineMilestone(models.Model):
+    year = models.CharField(max_length=50)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'year']
+
+    def __str__(self):
+        return f"{self.year} - {self.title}"
+
+
+# -----------------------------
+# Business Vertical Model
+# -----------------------------
+class BusinessVertical(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    icon_class = models.CharField(max_length=100, default="FaStore")
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+
+    def __str__(self):
+        return self.title
+
+
+# -----------------------------
+# Strength Model
+# -----------------------------
+class Strength(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    icon_class = models.CharField(max_length=100, default="FaGlobe")
+    bg_color = models.CharField(max_length=100, default="bg-amber-500")
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+
+    def __str__(self):
+        return self.title
+
 
 
 

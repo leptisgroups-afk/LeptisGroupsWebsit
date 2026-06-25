@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
-    BrandLogo, Project, ProjectImage, TeamMember, Branch, BlockedIP
+    BrandLogo, Project, ProjectImage, TeamMember, Branch, BlockedIP,
+    TimelineMilestone, BusinessVertical, Strength
 )
 
 
@@ -86,6 +87,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     consult_img_url = serializers.SerializerMethodField()
     careers_bg_url = serializers.SerializerMethodField()
     brands_bg_url = serializers.SerializerMethodField()
+    founder_image_url = serializers.SerializerMethodField()
+    site_logo_url = serializers.SerializerMethodField()
+    share_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SiteSettings
@@ -125,6 +129,24 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         if obj.brands_bg:
             request = self.context.get("request")
             return request.build_absolute_uri(obj.brands_bg.url) if request else obj.brands_bg.url
+        return None
+
+    def get_founder_image_url(self, obj):
+        if obj.founder_image:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.founder_image.url) if request else obj.founder_image.url
+        return None
+
+    def get_site_logo_url(self, obj):
+        if obj.site_logo:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.site_logo.url) if request else obj.site_logo.url
+        return None
+
+    def get_share_image_url(self, obj):
+        if obj.share_image:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.share_image.url) if request else obj.share_image.url
         return None
 
 
@@ -214,6 +236,25 @@ class BlockedIPSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlockedIP
         fields = ["id", "ip_address", "reason", "blocked_at"]
+
+
+class TimelineMilestoneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimelineMilestone
+        fields = "__all__"
+
+
+class BusinessVerticalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BusinessVertical
+        fields = "__all__"
+
+
+class StrengthSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Strength
+        fields = "__all__"
+
 
 
 

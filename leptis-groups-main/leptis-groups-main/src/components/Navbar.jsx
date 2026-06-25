@@ -5,8 +5,11 @@ import React, { useState, useEffect } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { getCleanImageUrl } from "@/data/config";
 
 export default function Navbar() {
+  const { settings } = useSiteSettings();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -61,7 +64,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center group relative z-10">
           <motion.img
-            src="/logo.png"
+            src={getCleanImageUrl(settings?.site_logo_url) || "/logo.png"}
             alt="Logo"
             className="w-36 h-auto brightness-100 hover:brightness-110 transition-all duration-300 filter drop-shadow-[0_2px_8px_rgba(255,255,255,0.05)]"
             whileHover={{ scale: 1.02 }}

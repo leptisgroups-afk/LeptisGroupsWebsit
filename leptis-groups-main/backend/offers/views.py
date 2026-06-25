@@ -38,7 +38,7 @@ class IsAdminOrCreateOnly(permissions.BasePermission):
 from .models import (
     CareerApplication, ContactMessage, Event, EventPDF, SiteSettings,
     BrandLogo, Project, ProjectImage, TeamMember, Branch, AdminOTP,
-    BlockedIP, FailedLoginAttempt
+    BlockedIP, FailedLoginAttempt, TimelineMilestone, BusinessVertical, Strength
 )
 from .serializers import (
     CareerApplicationSerializer,
@@ -51,7 +51,10 @@ from .serializers import (
     ProjectImageSerializer,
     TeamMemberSerializer,
     BranchSerializer,
-    BlockedIPSerializer
+    BlockedIPSerializer,
+    TimelineMilestoneSerializer,
+    BusinessVerticalSerializer,
+    StrengthSerializer
 )
 
 
@@ -307,20 +310,12 @@ def health_check(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0].strip()
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    status_data["client_ip"] = ip
-
     try:
-        # Check database connection
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
+        return JsonResponse({"status": "healthy"}, status=200)
     except Exception as e:
-        status_data["status"] = "unhealthy"
-        status_data["database"] = f"unreachable: {str(e)}"
-        status_data["message"] = "Database check failed"
-    
-    return JsonResponse(status_data)
+        return JsonResponse({"status": "unhealthy", "error": str(e)}, status=500)
 
 
 # -------------------------------------------------------------------
@@ -504,6 +499,37 @@ class BlockedIPViewSet(viewsets.ModelViewSet):
     queryset = BlockedIP.objects.all().order_by("-blocked_at")
     serializer_class = BlockedIPSerializer
     parser_classes = [JSONParser]
+
+
+# -------------------------------------------------------------------
+# TIMELINE MILESTONE VIEWSET
+# -------------------------------------------------------------------
+class TimelineMilestoneViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminOrReadOnly]
+    queryset = TimelineMilestone.objects.all().order_by("order", "year")
+    serializer_class = TimelineMilestoneSerializer
+    parser_classes = [JSONParser]
+
+
+# -------------------------------------------------------------------
+# BUSINESS VERTICAL VIEWSET
+# -------------------------------------------------------------------
+class BusinessVerticalViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminOrReadOnly]
+    queryset = BusinessVertical.objects.all().order_by("order", "created_at")
+    serializer_class = BusinessVerticalSerializer
+    parser_classes = [JSONParser]
+
+
+# -------------------------------------------------------------------
+# STRENGTH VIEWSET
+# -------------------------------------------------------------------
+class StrengthViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminOrReadOnly]
+    queryset = Strength.objects.all().order_by("order", "created_at")
+    serializer_class = StrengthSerializer
+    parser_classes = [JSONParser]
+
 
 
 

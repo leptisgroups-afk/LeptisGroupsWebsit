@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { getCleanImageUrl } from "@/data/config";
 
 export default function Footer() {
     const { settings } = useSiteSettings();
@@ -29,7 +30,7 @@ export default function Footer() {
 
                 {/* Left Section: Branding & Socials */}
                 <div className="space-y-6 text-left">
-                    <img src="/logo.png" alt="Logo" loading="lazy" className="w-36 h-auto mb-2 opacity-80 brightness-110" />
+                    <img src={getCleanImageUrl(settings?.site_logo_url) || "/logo.png"} alt="Logo" loading="lazy" className="w-36 h-auto mb-2 opacity-80 brightness-110" />
                     <p className="text-sm leading-relaxed text-slate-400 font-medium">
                         {footerAboutText}
                     </p>

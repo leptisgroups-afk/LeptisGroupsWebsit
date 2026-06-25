@@ -8,7 +8,7 @@ import {
     FaPhone, FaDatabase, FaCog, FaChartBar, FaSignOutAlt, 
     FaCalendarAlt, FaBriefcase, FaPaperPlane, FaEdit, FaCheck, 
     FaExclamationTriangle, FaTrash, FaPlus, FaEye, FaArrowRight, FaUpload, FaTimes,
-    FaMapMarkerAlt
+    FaMapMarkerAlt, FaAward
 } from 'react-icons/fa';
 import { getApiUrl, getCleanImageUrl } from "@/data/config";
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +31,9 @@ export default function AdminDashboard() {
     const PROJECT_IMAGES_URL = getApiUrl("/api/project-images/");
     const TEAM_MEMBERS_URL = getApiUrl("/api/team-members/");
     const BRANCHES_URL = getApiUrl("/api/branches/");
+    const MILESTONES_URL = getApiUrl("/api/timeline-milestones/");
+    const VERTICALS_URL = getApiUrl("/api/business-verticals/");
+    const STRENGTHS_URL = getApiUrl("/api/strengths/");
     
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loginForm, setLoginForm] = useState({ username: "", password: "" });
@@ -76,6 +79,27 @@ export default function AdminDashboard() {
     const [editingBranchName, setEditingBranchName] = useState("");
     const [branchSubmitStatus, setBranchSubmitStatus] = useState("");
 
+    // Milestones CRUD states
+    const [milestones, setMilestones] = useState([]);
+    const [newMilestone, setNewMilestone] = useState({ year: "", title: "", description: "", order: 0 });
+    const [editingMilestoneId, setEditingMilestoneId] = useState(null);
+    const [editingMilestoneData, setEditingMilestoneData] = useState({ year: "", title: "", description: "", order: 0 });
+    const [milestoneSubmitStatus, setMilestoneSubmitStatus] = useState("");
+
+    // Verticals CRUD states
+    const [verticals, setVerticals] = useState([]);
+    const [newVertical, setNewVertical] = useState({ title: "", description: "", icon_class: "FaStore", order: 0 });
+    const [editingVerticalId, setEditingVerticalId] = useState(null);
+    const [editingVerticalData, setEditingVerticalData] = useState({ title: "", description: "", icon_class: "FaStore", order: 0 });
+    const [verticalSubmitStatus, setVerticalSubmitStatus] = useState("");
+
+    // Strengths CRUD states
+    const [strengths, setStrengths] = useState([]);
+    const [newStrength, setNewStrength] = useState({ title: "", description: "", icon_class: "FaGlobe", bg_color: "bg-amber-500", order: 0 });
+    const [editingStrengthId, setEditingStrengthId] = useState(null);
+    const [editingStrengthData, setEditingStrengthData] = useState({ title: "", description: "", icon_class: "FaGlobe", bg_color: "bg-amber-500", order: 0 });
+    const [strengthSubmitStatus, setStrengthSubmitStatus] = useState("");
+
     // Firewall states
     const BLOCKED_IPS_URL = getApiUrl("/api/blocked-ips/");
     const [blockedIps, setBlockedIps] = useState([]);
@@ -98,6 +122,9 @@ export default function AdminDashboard() {
         consult_img: null,
         careers_bg: null,
         brands_bg: null,
+        founder_image: null,
+        site_logo: null,
+        share_image: null,
     });
 
     // Image Input Refs (to clear them)
@@ -108,6 +135,9 @@ export default function AdminDashboard() {
         consult_img: useRef(null),
         careers_bg: useRef(null),
         brands_bg: useRef(null),
+        founder_image: useRef(null),
+        site_logo: useRef(null),
+        share_image: useRef(null),
     };
 
     // Offers CRUD State
@@ -369,7 +399,7 @@ export default function AdminDashboard() {
                 }
             };
 
-            const [settRes, appRes, msgRes, evRes, brandRes, projRes, teamRes, branchRes, blockedRes] = await Promise.all([
+            const [settRes, appRes, msgRes, evRes, brandRes, projRes, teamRes, branchRes, blockedRes, milestonesRes, verticalsRes, strengthsRes] = await Promise.all([
                 getOrFallback(SETTINGS_URL, null),
                 getOrFallback(APPLICATIONS_URL, []),
                 getOrFallback(MESSAGES_URL, []),
@@ -378,7 +408,10 @@ export default function AdminDashboard() {
                 getOrFallback(PROJECTS_URL, []),
                 getOrFallback(TEAM_MEMBERS_URL, []),
                 getOrFallback(BRANCHES_URL, []),
-                getOrFallback(BLOCKED_IPS_URL, [])
+                getOrFallback(BLOCKED_IPS_URL, []),
+                getOrFallback(MILESTONES_URL, []),
+                getOrFallback(VERTICALS_URL, []),
+                getOrFallback(STRENGTHS_URL, [])
             ]);
 
             if (settRes) {
@@ -392,6 +425,9 @@ export default function AdminDashboard() {
                 updateImageSpecs("consult_img", getCleanImageUrl(settRes.consult_img_url) || "/consultbg.png");
                 updateImageSpecs("careers_bg", getCleanImageUrl(settRes.careers_bg_url) || "/ship-bg.jpg");
                 updateImageSpecs("brands_bg", getCleanImageUrl(settRes.brands_bg_url) || "/ship-bg.jpg");
+                updateImageSpecs("founder_image", getCleanImageUrl(settRes.founder_image_url) || "");
+                updateImageSpecs("site_logo", getCleanImageUrl(settRes.site_logo_url) || "/logo.png");
+                updateImageSpecs("share_image", getCleanImageUrl(settRes.share_image_url) || "/logo.png");
             }
             setApplications(appRes);
             setMessages(msgRes);
@@ -401,6 +437,9 @@ export default function AdminDashboard() {
             setTeamMembers(teamRes);
             setBranches(branchRes);
             setBlockedIps(blockedRes);
+            setMilestones(milestonesRes);
+            setVerticals(verticalsRes);
+            setStrengths(strengthsRes);
 
             // Fetch client IP
             try {
@@ -592,12 +631,18 @@ export default function AdminDashboard() {
                 key !== 'consult_img_url' &&
                 key !== 'careers_bg_url' &&
                 key !== 'brands_bg_url' &&
+                key !== 'founder_image_url' &&
+                key !== 'site_logo_url' &&
+                key !== 'share_image_url' &&
                 key !== 'hero_bg' && 
                 key !== 'about_team_img' && 
                 key !== 'home_about_img' && 
                 key !== 'consult_img' &&
                 key !== 'careers_bg' &&
-                key !== 'brands_bg'
+                key !== 'brands_bg' &&
+                key !== 'founder_image' &&
+                key !== 'site_logo' &&
+                key !== 'share_image'
             ) {
                 data.append(key, settingsForm[key] !== null ? settingsForm[key] : "");
             }
@@ -622,6 +667,9 @@ export default function AdminDashboard() {
             updateImageSpecs("consult_img", getCleanImageUrl(res.data.consult_img_url) || "/consultbg.png");
             updateImageSpecs("careers_bg", getCleanImageUrl(res.data.careers_bg_url) || "/ship-bg.jpg");
             updateImageSpecs("brands_bg", getCleanImageUrl(res.data.brands_bg_url) || "/ship-bg.jpg");
+            updateImageSpecs("founder_image", getCleanImageUrl(res.data.founder_image_url) || "");
+            updateImageSpecs("site_logo", getCleanImageUrl(res.data.site_logo_url) || "/logo.png");
+            updateImageSpecs("share_image", getCleanImageUrl(res.data.share_image_url) || "/logo.png");
             
             setSelectedImageSpecs({});
             setSettingImages({
@@ -631,6 +679,9 @@ export default function AdminDashboard() {
                 consult_img: null,
                 careers_bg: null,
                 brands_bg: null,
+                founder_image: null,
+                site_logo: null,
+                share_image: null,
             });
             Object.keys(fileRefs).forEach(key => {
                 if (fileRefs[key].current) fileRefs[key].current.value = "";
@@ -1157,6 +1208,166 @@ export default function AdminDashboard() {
         } catch (err) {
             console.error("Edit team member error:", err);
             alert("Failed to save team member changes.");
+        }
+    };
+
+    // --- TIMELINE MILESTONES CRUD HANDLERS ---
+    const handleMilestoneChange = (e) => {
+        const { name, value } = e.target;
+        setNewMilestone(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleCreateMilestone = async (e) => {
+        e.preventDefault();
+        setMilestoneSubmitStatus("Adding milestone...");
+        try {
+            await axios.post(MILESTONES_URL, newMilestone, getAuthHeaders());
+            setMilestoneSubmitStatus("Milestone added successfully!");
+            setNewMilestone({ year: "", title: "", description: "", order: 0 });
+            fetchData();
+            setTimeout(() => setMilestoneSubmitStatus(""), 4000);
+        } catch (err) {
+            console.error("Create milestone error:", err);
+            setMilestoneSubmitStatus("Failed to add milestone.");
+        }
+    };
+
+    const handleDeleteMilestone = async (id) => {
+        if (!confirm("Are you sure you want to delete this milestone?")) return;
+        try {
+            await axios.delete(`${MILESTONES_URL}${id}/`, getAuthHeaders());
+            fetchData();
+        } catch (err) {
+            console.error("Delete milestone error:", err);
+            alert("Failed to delete milestone.");
+        }
+    };
+
+    const handleStartEditMilestone = (m) => {
+        setEditingMilestoneId(m.id);
+        setEditingMilestoneData({
+            year: m.year,
+            title: m.title,
+            description: m.description,
+            order: m.order
+        });
+    };
+
+    const handleSaveEditMilestone = async (id) => {
+        try {
+            await axios.put(`${MILESTONES_URL}${id}/`, editingMilestoneData, getAuthHeaders());
+            setEditingMilestoneId(null);
+            fetchData();
+        } catch (err) {
+            console.error("Edit milestone error:", err);
+            alert("Failed to save milestone changes.");
+        }
+    };
+
+    // --- BUSINESS VERTICALS CRUD HANDLERS ---
+    const handleVerticalChange = (e) => {
+        const { name, value } = e.target;
+        setNewVertical(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleCreateVertical = async (e) => {
+        e.preventDefault();
+        setVerticalSubmitStatus("Adding vertical...");
+        try {
+            await axios.post(VERTICALS_URL, newVertical, getAuthHeaders());
+            setVerticalSubmitStatus("Vertical added successfully!");
+            setNewVertical({ title: "", description: "", icon_class: "FaStore", order: 0 });
+            fetchData();
+            setTimeout(() => setVerticalSubmitStatus(""), 4000);
+        } catch (err) {
+            console.error("Create vertical error:", err);
+            setVerticalSubmitStatus("Failed to add vertical.");
+        }
+    };
+
+    const handleDeleteVertical = async (id) => {
+        if (!confirm("Are you sure you want to delete this business vertical?")) return;
+        try {
+            await axios.delete(`${VERTICALS_URL}${id}/`, getAuthHeaders());
+            fetchData();
+        } catch (err) {
+            console.error("Delete vertical error:", err);
+            alert("Failed to delete vertical.");
+        }
+    };
+
+    const handleStartEditVertical = (v) => {
+        setEditingVerticalId(v.id);
+        setEditingVerticalData({
+            title: v.title,
+            description: v.description,
+            icon_class: v.icon_class,
+            order: v.order
+        });
+    };
+
+    const handleSaveEditVertical = async (id) => {
+        try {
+            await axios.put(`${VERTICALS_URL}${id}/`, editingVerticalData, getAuthHeaders());
+            setEditingVerticalId(null);
+            fetchData();
+        } catch (err) {
+            console.error("Edit vertical error:", err);
+            alert("Failed to save vertical changes.");
+        }
+    };
+
+    // --- STRENGTHS CRUD HANDLERS ---
+    const handleStrengthChange = (e) => {
+        const { name, value } = e.target;
+        setNewStrength(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleCreateStrength = async (e) => {
+        e.preventDefault();
+        setStrengthSubmitStatus("Adding strength...");
+        try {
+            await axios.post(STRENGTHS_URL, newStrength, getAuthHeaders());
+            setStrengthSubmitStatus("Strength added successfully!");
+            setNewStrength({ title: "", description: "", icon_class: "FaGlobe", bg_color: "bg-amber-500", order: 0 });
+            fetchData();
+            setTimeout(() => setStrengthSubmitStatus(""), 4000);
+        } catch (err) {
+            console.error("Create strength error:", err);
+            setStrengthSubmitStatus("Failed to add strength.");
+        }
+    };
+
+    const handleDeleteStrength = async (id) => {
+        if (!confirm("Are you sure you want to delete this strength?")) return;
+        try {
+            await axios.delete(`${STRENGTHS_URL}${id}/`, getAuthHeaders());
+            fetchData();
+        } catch (err) {
+            console.error("Delete strength error:", err);
+            alert("Failed to delete strength.");
+        }
+    };
+
+    const handleStartEditStrength = (s) => {
+        setEditingStrengthId(s.id);
+        setEditingStrengthData({
+            title: s.title,
+            description: s.description,
+            icon_class: s.icon_class,
+            bg_color: s.bg_color,
+            order: s.order
+        });
+    };
+
+    const handleSaveEditStrength = async (id) => {
+        try {
+            await axios.put(`${STRENGTHS_URL}${id}/`, editingStrengthData, getAuthHeaders());
+            setEditingStrengthId(null);
+            fetchData();
+        } catch (err) {
+            console.error("Edit strength error:", err);
+            alert("Failed to save strength changes.");
         }
     };
 
@@ -2270,6 +2481,564 @@ export default function AdminDashboard() {
         );
     };
 
+    const renderMilestonesTab = () => {
+        return (
+            <div className="space-y-8 text-left">
+                {milestoneSubmitStatus && (
+                    <div className="p-4 rounded-xl text-sm font-bold border bg-blue-950/20 border-blue-500/30 text-blue-400 transition-all duration-300">
+                        {milestoneSubmitStatus}
+                    </div>
+                )}
+                <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h4 className="font-extrabold text-white text-lg mb-6 pb-4 border-b border-slate-800/80">Add Corporate Milestone</h4>
+                    <form onSubmit={handleCreateMilestone} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Year / Era</label>
+                                <input
+                                    type="text"
+                                    name="year"
+                                    placeholder="e.g. 2016 or Present"
+                                    value={newMilestone.year}
+                                    onChange={handleMilestoneChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Milestone Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    placeholder="e.g. Foundation in UAE"
+                                    value={newMilestone.title}
+                                    onChange={handleMilestoneChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Display Order (Sorting)</label>
+                                <input
+                                    type="number"
+                                    name="order"
+                                    placeholder="0"
+                                    value={newMilestone.order}
+                                    onChange={handleMilestoneChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Description Detail</label>
+                            <textarea
+                                name="description"
+                                rows="3"
+                                placeholder="Describe what was accomplished during this milestone..."
+                                value={newMilestone.description}
+                                onChange={handleMilestoneChange}
+                                className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300 resize-none font-medium"
+                                required
+                            />
+                        </div>
+                        <div className="flex justify-end pt-2">
+                            <button type="submit" className="px-6 py-3 bg-[#194a9a] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition duration-200">
+                                Add Milestone
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h4 className="font-extrabold text-white text-lg mb-6 pb-4 border-b border-slate-800/80">Timeline Milestones List</h4>
+                    {milestones.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-left text-sm">
+                                <thead>
+                                    <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase text-xs">
+                                        <th className="py-4 px-4 w-24">Year</th>
+                                        <th className="py-4 px-4 w-48">Title</th>
+                                        <th className="py-4 px-4">Description</th>
+                                        <th className="py-4 px-4 w-20">Order</th>
+                                        <th className="py-4 px-4 text-right w-24">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/50">
+                                    {milestones.map((m) => {
+                                        const isEditing = editingMilestoneId === m.id;
+                                        return (
+                                            <tr key={m.id} className="hover:bg-slate-900/25 transition">
+                                                <td className="py-4 px-4 font-black text-amber-500">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editingMilestoneData.year}
+                                                            onChange={(e) => setEditingMilestoneData({ ...editingMilestoneData, year: e.target.value })}
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-full bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        />
+                                                    ) : (
+                                                        m.year
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 font-bold text-white">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editingMilestoneData.title}
+                                                            onChange={(e) => setEditingMilestoneData({ ...editingMilestoneData, title: e.target.value })}
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-full bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        />
+                                                    ) : (
+                                                        m.title
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-slate-400 text-xs leading-normal">
+                                                    {isEditing ? (
+                                                        <textarea
+                                                            value={editingMilestoneData.description}
+                                                            onChange={(e) => setEditingMilestoneData({ ...editingMilestoneData, description: e.target.value })}
+                                                            rows="2"
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-full bg-slate-950 text-white outline-none focus:border-blue-500 resize-none"
+                                                        />
+                                                    ) : (
+                                                        m.description
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 font-bold text-slate-400">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="number"
+                                                            value={editingMilestoneData.order}
+                                                            onChange={(e) => setEditingMilestoneData({ ...editingMilestoneData, order: parseInt(e.target.value) || 0 })}
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-16 bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        />
+                                                    ) : (
+                                                        m.order
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        {isEditing ? (
+                                                            <>
+                                                                <button onClick={() => handleSaveEditMilestone(m.id)} className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition"><FaCheck className="text-xs" /></button>
+                                                                <button onClick={() => setEditingMilestoneId(null)} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"><FaTimes className="text-xs" /></button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button onClick={() => handleStartEditMilestone(m)} className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-lg hover:text-white transition"><FaEdit className="text-xs" /></button>
+                                                                <button onClick={() => handleDeleteMilestone(m.id)} className="p-2 bg-rose-950/30 border border-rose-900/50 hover:bg-rose-600 text-rose-455 hover:text-white rounded-lg transition"><FaTrash className="text-xs" /></button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-slate-500 text-sm py-12 text-center font-medium">No timeline milestones added yet.</p>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderVerticalsTab = () => {
+        return (
+            <div className="space-y-8 text-left">
+                {verticalSubmitStatus && (
+                    <div className="p-4 rounded-xl text-sm font-bold border bg-blue-950/20 border-blue-500/30 text-blue-400 transition-all duration-300">
+                        {verticalSubmitStatus}
+                    </div>
+                )}
+                <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h4 className="font-extrabold text-white text-lg mb-6 pb-4 border-b border-slate-800/80">Add Business Vertical</h4>
+                    <form onSubmit={handleCreateVertical} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Vertical Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    placeholder="e.g. Logistics & Supply Chain"
+                                    value={newVertical.title}
+                                    onChange={handleVerticalChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Icon Class Name (react-icons/fa)</label>
+                                <select
+                                    name="icon_class"
+                                    value={newVertical.icon_class}
+                                    onChange={handleVerticalChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                >
+                                    <option value="FaTruck">FaTruck (Truck / Cargo)</option>
+                                    <option value="FaShip">FaShip (Ship / Ocean)</option>
+                                    <option value="FaStore">FaStore (Store / Retail)</option>
+                                    <option value="FaHandshake">FaHandshake (Handshake / Produce)</option>
+                                    <option value="FaBuilding">FaBuilding (Building / Corporate)</option>
+                                    <option value="FaGlobe">FaGlobe (Globe / World)</option>
+                                    <option value="FaBox">FaBox (Box / Parcel)</option>
+                                    <option value="FaWarehouse">FaWarehouse (Warehouse)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Display Order</label>
+                                <input
+                                    type="number"
+                                    name="order"
+                                    placeholder="0"
+                                    value={newVertical.order}
+                                    onChange={handleVerticalChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Short Description</label>
+                            <textarea
+                                name="description"
+                                rows="3"
+                                placeholder="Describe this business vertical's services..."
+                                value={newVertical.description}
+                                onChange={handleVerticalChange}
+                                className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300 resize-none font-medium"
+                                required
+                            />
+                        </div>
+                        <div className="flex justify-end pt-2">
+                            <button type="submit" className="px-6 py-3 bg-[#194a9a] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition duration-200">
+                                Add Business Vertical
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h4 className="font-extrabold text-white text-lg mb-6 pb-4 border-b border-slate-800/80">Business Verticals List</h4>
+                    {verticals.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-left text-sm">
+                                <thead>
+                                    <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase text-xs">
+                                        <th className="py-4 px-4 w-28">Icon</th>
+                                        <th className="py-4 px-4 w-60">Title</th>
+                                        <th className="py-4 px-4">Description</th>
+                                        <th className="py-4 px-4 w-20">Order</th>
+                                        <th className="py-4 px-4 text-right w-24">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/50">
+                                    {verticals.map((v) => {
+                                        const isEditing = editingVerticalId === v.id;
+                                        return (
+                                            <tr key={v.id} className="hover:bg-slate-900/25 transition">
+                                                <td className="py-4 px-4 text-amber-500 font-bold">
+                                                    {isEditing ? (
+                                                        <select
+                                                            value={editingVerticalData.icon_class}
+                                                            onChange={(e) => setEditingVerticalData({ ...editingVerticalData, icon_class: e.target.value })}
+                                                            className="border border-slate-800 rounded px-1.5 py-1 text-xs bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        >
+                                                            <option value="FaTruck">FaTruck</option>
+                                                            <option value="FaShip">FaShip</option>
+                                                            <option value="FaStore">FaStore</option>
+                                                            <option value="FaHandshake">FaHandshake</option>
+                                                            <option value="FaBuilding">FaBuilding</option>
+                                                            <option value="FaGlobe">FaGlobe</option>
+                                                            <option value="FaBox">FaBox</option>
+                                                            <option value="FaWarehouse">FaWarehouse</option>
+                                                        </select>
+                                                    ) : (
+                                                        <span className="text-slate-400 font-semibold">{v.icon_class}</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 font-bold text-white">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editingVerticalData.title}
+                                                            onChange={(e) => setEditingVerticalData({ ...editingVerticalData, title: e.target.value })}
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-full bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        />
+                                                    ) : (
+                                                        v.title
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-slate-400 text-xs leading-normal">
+                                                    {isEditing ? (
+                                                        <textarea
+                                                            value={editingVerticalData.description}
+                                                            onChange={(e) => setEditingVerticalData({ ...editingVerticalData, description: e.target.value })}
+                                                            rows="2"
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-full bg-slate-950 text-white outline-none focus:border-blue-500 resize-none"
+                                                        />
+                                                    ) : (
+                                                        v.description
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 font-bold text-slate-400">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="number"
+                                                            value={editingVerticalData.order}
+                                                            onChange={(e) => setEditingVerticalData({ ...editingVerticalData, order: parseInt(e.target.value) || 0 })}
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-16 bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        />
+                                                    ) : (
+                                                        v.order
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        {isEditing ? (
+                                                            <>
+                                                                <button onClick={() => handleSaveEditVertical(v.id)} className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition"><FaCheck className="text-xs" /></button>
+                                                                <button onClick={() => setEditingVerticalId(null)} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"><FaTimes className="text-xs" /></button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button onClick={() => handleStartEditVertical(v)} className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-lg hover:text-white transition"><FaEdit className="text-xs" /></button>
+                                                                <button onClick={() => handleDeleteVertical(v.id)} className="p-2 bg-rose-950/30 border border-rose-900/50 hover:bg-rose-600 text-rose-455 hover:text-white rounded-lg transition"><FaTrash className="text-xs" /></button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-slate-500 text-sm py-12 text-center font-medium">No business verticals added yet.</p>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderStrengthsTab = () => {
+        return (
+            <div className="space-y-8 text-left">
+                {strengthSubmitStatus && (
+                    <div className="p-4 rounded-xl text-sm font-bold border bg-blue-950/20 border-blue-500/30 text-blue-400 transition-all duration-300">
+                        {strengthSubmitStatus}
+                    </div>
+                )}
+                <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h4 className="font-extrabold text-white text-lg mb-6 pb-4 border-b border-slate-800/80">Add Corporate Strength</h4>
+                    <form onSubmit={handleCreateStrength} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Strength Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    placeholder="e.g. Quality Assurance"
+                                    value={newStrength.title}
+                                    onChange={handleStrengthChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Icon Class (react-icons/fa)</label>
+                                <select
+                                    name="icon_class"
+                                    value={newStrength.icon_class}
+                                    onChange={handleStrengthChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                >
+                                    <option value="FaGlobe">FaGlobe (Globe)</option>
+                                    <option value="FaCheckCircle">FaCheckCircle (Checkmark)</option>
+                                    <option value="FaUserCheck">FaUserCheck (Customer Check)</option>
+                                    <option value="FaChartLine">FaChartLine (Chart / Growth)</option>
+                                    <option value="FaAward">FaAward (Award / Medal)</option>
+                                    <option value="FaBuilding">FaBuilding (Building)</option>
+                                    <option value="FaShieldAlt">FaShieldAlt (Shield / Security)</option>
+                                    <option value="FaThumbsUp">FaThumbsUp (Thumbs Up)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Color Theme</label>
+                                <select
+                                    name="bg_color"
+                                    value={newStrength.bg_color}
+                                    onChange={handleStrengthChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                >
+                                    <option value="bg-[#194a9a]">Blue theme (bg-[#194a9a])</option>
+                                    <option value="bg-amber-500">Amber theme (bg-amber-500)</option>
+                                    <option value="bg-emerald-500">Green theme (bg-emerald-500)</option>
+                                    <option value="bg-orange-500">Orange theme (bg-orange-500)</option>
+                                    <option value="bg-red-500">Red theme (bg-red-500)</option>
+                                    <option value="bg-purple-500">Purple theme (bg-purple-500)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Display Order</label>
+                                <input
+                                    type="number"
+                                    name="order"
+                                    placeholder="0"
+                                    value={newStrength.order}
+                                    onChange={handleStrengthChange}
+                                    className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Strength Description</label>
+                            <textarea
+                                name="description"
+                                rows="3"
+                                placeholder="Describe why this strength sets the company apart..."
+                                value={newStrength.description}
+                                onChange={handleStrengthChange}
+                                className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300 resize-none font-medium"
+                                required
+                            />
+                        </div>
+                        <div className="flex justify-end pt-2">
+                            <button type="submit" className="px-6 py-3 bg-[#194a9a] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl shadow-lg transition duration-200">
+                                Add Strength
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h4 className="font-extrabold text-white text-lg mb-6 pb-4 border-b border-slate-800/80">Corporate Strengths List</h4>
+                    {strengths.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-left text-sm">
+                                <thead>
+                                    <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase text-xs">
+                                        <th className="py-4 px-4 w-28">Icon</th>
+                                        <th className="py-4 px-4 w-28">Color Theme</th>
+                                        <th className="py-4 px-4 w-48">Title</th>
+                                        <th className="py-4 px-4">Description</th>
+                                        <th className="py-4 px-4 w-20">Order</th>
+                                        <th className="py-4 px-4 text-right w-24">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/50">
+                                    {strengths.map((s) => {
+                                        const isEditing = editingStrengthId === s.id;
+                                        return (
+                                            <tr key={s.id} className="hover:bg-slate-900/25 transition">
+                                                <td className="py-4 px-4 text-amber-500 font-bold">
+                                                    {isEditing ? (
+                                                        <select
+                                                            value={editingStrengthData.icon_class}
+                                                            onChange={(e) => setEditingStrengthData({ ...editingStrengthData, icon_class: e.target.value })}
+                                                            className="border border-slate-800 rounded px-1.5 py-1 text-xs bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        >
+                                                            <option value="FaGlobe">FaGlobe</option>
+                                                            <option value="FaCheckCircle">FaCheckCircle</option>
+                                                            <option value="FaUserCheck">FaUserCheck</option>
+                                                            <option value="FaChartLine">FaChartLine</option>
+                                                            <option value="FaAward">FaAward</option>
+                                                            <option value="FaBuilding">FaBuilding</option>
+                                                            <option value="FaShieldAlt">FaShieldAlt</option>
+                                                            <option value="FaThumbsUp">FaThumbsUp</option>
+                                                        </select>
+                                                    ) : (
+                                                        <span className="text-slate-400 font-semibold">{s.icon_class}</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-slate-400 text-xs">
+                                                    {isEditing ? (
+                                                        <select
+                                                            value={editingStrengthData.bg_color}
+                                                            onChange={(e) => setEditingStrengthData({ ...editingStrengthData, bg_color: e.target.value })}
+                                                            className="border border-slate-800 rounded px-1.5 py-1 text-xs bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        >
+                                                            <option value="bg-[#194a9a]">Blue</option>
+                                                            <option value="bg-amber-500">Amber</option>
+                                                            <option value="bg-emerald-500">Green</option>
+                                                            <option value="bg-orange-500">Orange</option>
+                                                            <option value="bg-red-500">Red</option>
+                                                            <option value="bg-purple-500">Purple</option>
+                                                        </select>
+                                                    ) : (
+                                                        <span className="inline-block w-4 h-4 rounded-full border border-slate-850" style={{ backgroundColor: s.bg_color === 'bg-[#194a9a]' ? '#194a9a' : s.bg_color === 'bg-amber-500' ? '#f59e0b' : s.bg_color === 'bg-emerald-500' ? '#10b981' : s.bg_color === 'bg-orange-500' ? '#f97316' : s.bg_color === 'bg-red-500' ? '#ef4444' : '#8b5cf6' }}></span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 font-bold text-white">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editingStrengthData.title}
+                                                            onChange={(e) => setEditingStrengthData({ ...editingStrengthData, title: e.target.value })}
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-full bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        />
+                                                    ) : (
+                                                        s.title
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-slate-400 text-xs leading-normal">
+                                                    {isEditing ? (
+                                                        <textarea
+                                                            value={editingStrengthData.description}
+                                                            onChange={(e) => setEditingStrengthData({ ...editingStrengthData, description: e.target.value })}
+                                                            rows="2"
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-full bg-slate-950 text-white outline-none focus:border-blue-500 resize-none"
+                                                        />
+                                                    ) : (
+                                                        s.description
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 font-bold text-slate-400">
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="number"
+                                                            value={editingStrengthData.order}
+                                                            onChange={(e) => setEditingStrengthData({ ...editingStrengthData, order: parseInt(e.target.value) || 0 })}
+                                                            className="border border-slate-800 rounded px-2 py-1 text-xs w-16 bg-slate-950 text-white outline-none focus:border-blue-500"
+                                                        />
+                                                    ) : (
+                                                        s.order
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        {isEditing ? (
+                                                            <>
+                                                                <button onClick={() => handleSaveEditStrength(s.id)} className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition"><FaCheck className="text-xs" /></button>
+                                                                <button onClick={() => setEditingStrengthId(null)} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"><FaTimes className="text-xs" /></button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button onClick={() => handleStartEditStrength(s)} className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-lg hover:text-white transition"><FaEdit className="text-xs" /></button>
+                                                                <button onClick={() => handleDeleteStrength(s.id)} className="p-2 bg-rose-950/30 border border-rose-900/50 hover:bg-rose-600 text-rose-455 hover:text-white rounded-lg transition"><FaTrash className="text-xs" /></button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-slate-500 text-sm py-12 text-center font-medium">No strengths added yet.</p>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     const renderTeamTab = () => {
         return (
             <div className="space-y-8 text-left">
@@ -2603,6 +3372,46 @@ export default function AdminDashboard() {
                                     />
                                 </div>
                             </div>
+
+                            {/* Founder & Chairman Details */}
+                            <div className="border-t border-slate-800/80 pt-4 space-y-4">
+                                <h5 className="font-extrabold text-white text-sm">Founder & Chairman Leadership Quote</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Founder Name</label>
+                                        <input
+                                            type="text"
+                                            name="founder_name"
+                                            value={settingsForm.founder_name || ""}
+                                            onChange={handleSettingsChange}
+                                            className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Founder Title / Designation</label>
+                                        <input
+                                            type="text"
+                                            name="founder_title"
+                                            value={settingsForm.founder_title || ""}
+                                            onChange={handleSettingsChange}
+                                            className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">Leadership Quote</label>
+                                    <textarea
+                                        name="founder_quote"
+                                        rows="3"
+                                        value={settingsForm.founder_quote || ""}
+                                        onChange={handleSettingsChange}
+                                        className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300 resize-none font-medium"
+                                        required
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2832,6 +3641,48 @@ export default function AdminDashboard() {
                                 />
                             </div>
                         </div>
+
+                        {/* SEO Metadata Config */}
+                        <div className="space-y-4 pt-4 border-t border-slate-800/40">
+                            <h5 className="font-extrabold text-white text-sm flex items-center gap-2 border-l-4 border-amber-500 pl-2.5">
+                                Search Engine (SEO) & WhatsApp Link Preview
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">SEO Meta Title</label>
+                                    <input
+                                        type="text"
+                                        name="meta_title"
+                                        value={settingsForm.meta_title || ""}
+                                        onChange={handleSettingsChange}
+                                        className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                        placeholder="Leptis Group"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">SEO Meta Keywords</label>
+                                    <input
+                                        type="text"
+                                        name="meta_keywords"
+                                        value={settingsForm.meta_keywords || ""}
+                                        onChange={handleSettingsChange}
+                                        className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                        placeholder="leptis, logistics, trading"
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-slate-400 font-bold text-xs uppercase tracking-wider mb-2">SEO Meta Description</label>
+                                    <textarea
+                                        name="meta_description"
+                                        value={settingsForm.meta_description || ""}
+                                        onChange={handleSettingsChange}
+                                        rows={2}
+                                        className="w-full border border-slate-800 rounded-xl p-3 bg-slate-950/40 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-slate-950 text-white transition-all duration-300"
+                                        placeholder="Provide website description context..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Image Configuration & Dynamic Uploads */}
@@ -3006,6 +3857,90 @@ export default function AdminDashboard() {
                                     />
                                     <p className="text-[10px] text-slate-500 font-semibold mt-1.5">Recommended: Under 2MB.</p>
                                     {renderSelectedImageSpecs("brands_bg", 2048)}
+                                </div>
+                            </div>
+
+                            {/* Item 7: Founder Image */}
+                            <div className="border border-slate-800/80 p-5 rounded-2xl bg-slate-950/30 flex flex-col sm:flex-row gap-5 items-center">
+                                <div className="flex flex-col items-center flex-shrink-0">
+                                    <div className="w-24 h-24 rounded-xl bg-slate-900 overflow-hidden border border-slate-800">
+                                        <img src={getCleanImageUrl(settingsForm.founder_image_url) || "/team.jpg"} alt="founder" className="w-full h-full object-cover" />
+                                    </div>
+                                    {currentImageSpecs.founder_image && (
+                                        <div className="flex flex-col items-center text-[9px] font-bold text-slate-400 bg-slate-950 border border-slate-850 px-2 py-0.5 rounded gap-0.5 mt-2 w-24 text-center">
+                                            <span>{currentImageSpecs.founder_image.size}</span>
+                                            <span className="text-blue-400 font-extrabold">{currentImageSpecs.founder_image.width}x{currentImageSpecs.founder_image.height}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-left w-full">
+                                    <h5 className="font-bold text-white text-sm mb-1.5">Founder & Chairman Photo</h5>
+                                    <input 
+                                        type="file" 
+                                        name="founder_image" 
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        ref={fileRefs.founder_image}
+                                        className="text-xs w-full text-slate-455 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20 cursor-pointer"
+                                    />
+                                    <p className="text-[10px] text-slate-500 font-semibold mt-1.5">Recommended: Square crop, under 2MB.</p>
+                                    {renderSelectedImageSpecs("founder_image", 2048)}
+                                </div>
+                            </div>
+
+                            {/* Item 8: Website Logo */}
+                            <div className="border border-slate-800/80 p-5 rounded-2xl bg-slate-950/30 flex flex-col sm:flex-row gap-5 items-center">
+                                <div className="flex flex-col items-center flex-shrink-0">
+                                    <div className="w-24 h-24 rounded-xl bg-slate-900 overflow-hidden border border-slate-800">
+                                        <img src={getCleanImageUrl(settingsForm.site_logo_url) || "/logo.png"} alt="site logo" className="w-full h-full object-cover" />
+                                    </div>
+                                    {currentImageSpecs.site_logo && (
+                                        <div className="flex flex-col items-center text-[9px] font-bold text-slate-400 bg-slate-950 border border-slate-850 px-2 py-0.5 rounded gap-0.5 mt-2 w-24 text-center">
+                                            <span>{currentImageSpecs.site_logo.size}</span>
+                                            <span className="text-blue-400 font-extrabold">{currentImageSpecs.site_logo.width}x{currentImageSpecs.site_logo.height}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-left w-full">
+                                    <h5 className="font-bold text-white text-sm mb-1.5">Website Logo (Header & Footer)</h5>
+                                    <input 
+                                        type="file" 
+                                        name="site_logo" 
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        ref={fileRefs.site_logo}
+                                        className="text-xs w-full text-slate-455 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20 cursor-pointer"
+                                    />
+                                    <p className="text-[10px] text-slate-500 font-semibold mt-1.5">Recommended: PNG format with transparency.</p>
+                                    {renderSelectedImageSpecs("site_logo", 1024)}
+                                </div>
+                            </div>
+
+                            {/* Item 9: WhatsApp & og:image preview */}
+                            <div className="border border-slate-800/80 p-5 rounded-2xl bg-slate-950/30 flex flex-col sm:flex-row gap-5 items-center">
+                                <div className="flex flex-col items-center flex-shrink-0">
+                                    <div className="w-24 h-24 rounded-xl bg-slate-900 overflow-hidden border border-slate-800">
+                                        <img src={getCleanImageUrl(settingsForm.share_image_url) || "/logo.png"} alt="share image" className="w-full h-full object-cover" />
+                                    </div>
+                                    {currentImageSpecs.share_image && (
+                                        <div className="flex flex-col items-center text-[9px] font-bold text-slate-400 bg-slate-950 border border-slate-850 px-2 py-0.5 rounded gap-0.5 mt-2 w-24 text-center">
+                                            <span>{currentImageSpecs.share_image.size}</span>
+                                            <span className="text-blue-400 font-extrabold">{currentImageSpecs.share_image.width}x{currentImageSpecs.share_image.height}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-left w-full">
+                                    <h5 className="font-bold text-white text-sm mb-1.5">Social Share Link Preview Image</h5>
+                                    <input 
+                                        type="file" 
+                                        name="share_image" 
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        ref={fileRefs.share_image}
+                                        className="text-xs w-full text-slate-455 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20 cursor-pointer"
+                                    />
+                                    <p className="text-[10px] text-slate-500 font-semibold mt-1.5">Recommended: 800x600 px or larger.</p>
+                                    {renderSelectedImageSpecs("share_image", 2048)}
                                 </div>
                             </div>
                         </div>
@@ -3305,6 +4240,9 @@ export default function AdminDashboard() {
                             { id: "projects", label: "Projects Portfolio", icon: <FaDatabase />, badge: projects.length },
                             { id: "team", label: "Our Team", icon: <FaUser />, badge: teamMembers.length },
                             { id: "branches", label: "Manage Branches", icon: <FaMapMarkerAlt />, badge: branches.length },
+                            { id: "milestones", label: "About Timeline", icon: <FaCalendarAlt />, badge: milestones.length },
+                            { id: "verticals", label: "About Verticals", icon: <FaBuilding />, badge: verticals.length },
+                            { id: "strengths", label: "About Strengths", icon: <FaAward />, badge: strengths.length },
                             { id: "settings", label: "Site Settings", icon: <FaCog /> },
                             { id: "security", label: "Firewall Security", icon: <FaLock /> }
                         ].map((item) => {
@@ -3405,6 +4343,9 @@ export default function AdminDashboard() {
                             {activeTab === "projects" && renderProjectsTab()}
                             {activeTab === "team" && renderTeamTab()}
                             {activeTab === "branches" && renderBranchesTab()}
+                            {activeTab === "milestones" && renderMilestonesTab()}
+                            {activeTab === "verticals" && renderVerticalsTab()}
+                            {activeTab === "strengths" && renderStrengthsTab()}
                             {activeTab === "settings" && renderSettingsTab()}
                             {activeTab === "security" && renderSecurityTab()}
                         </motion.div>

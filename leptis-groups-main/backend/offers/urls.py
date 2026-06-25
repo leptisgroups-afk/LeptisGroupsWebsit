@@ -11,7 +11,10 @@ from .views import (
     ProjectImageViewSet,
     TeamMemberViewSet,
     BlockedIPViewSet,
-    health_check
+    health_check,
+    TimelineMilestoneViewSet,
+    BusinessVerticalViewSet,
+    StrengthViewSet
 )
 
 # Create a router and register our ViewSets
@@ -26,6 +29,9 @@ router.register(r'projects', ProjectViewSet, basename='projects')
 router.register(r'project-images', ProjectImageViewSet, basename='projectimages')
 router.register(r'team-members', TeamMemberViewSet, basename='teammembers')
 router.register(r'blocked-ips', BlockedIPViewSet, basename='blockedips')
+router.register(r'timeline-milestones', TimelineMilestoneViewSet, basename='timelinemilestones')
+router.register(r'business-verticals', BusinessVerticalViewSet, basename='businessverticals')
+router.register(r'strengths', StrengthViewSet, basename='strengths')
 
 
 

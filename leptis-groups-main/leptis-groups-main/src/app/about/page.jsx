@@ -1,7 +1,7 @@
 'use client';
 
 import Loader from '@/components/Loader';
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { 
     FaGlobe, 
     FaCheckCircle, 
@@ -17,16 +17,37 @@ import {
     FaCalendarAlt,
     FaBuilding
 } from "react-icons/fa";
+import * as FaIcons from "react-icons/fa";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import axios from "axios";
 
-import { getCleanImageUrl } from "@/data/config";
+import { getCleanImageUrl, getApiUrl } from "@/data/config";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export default function About() {
     const { settings } = useSiteSettings();
 
-    const features = [
+    // Helper functions to render dynamic icons
+    const renderVerticalIcon = (icon) => {
+        if (React.isValidElement(icon)) return icon;
+        if (typeof icon === 'string') {
+            const IconComponent = FaIcons[icon];
+            return IconComponent ? <IconComponent className="text-amber-500 text-xl" /> : <FaIcons.FaStore className="text-amber-500 text-xl" />;
+        }
+        return <FaIcons.FaStore className="text-amber-500 text-xl" />;
+    };
+
+    const renderStrengthIcon = (icon) => {
+        if (React.isValidElement(icon)) return icon;
+        if (typeof icon === 'string') {
+            const IconComponent = FaIcons[icon];
+            return IconComponent ? <IconComponent className="text-white text-lg" /> : <FaIcons.FaGlobe className="text-white text-lg" />;
+        }
+        return <FaIcons.FaGlobe className="text-white text-lg" />;
+    };
+
+    const [features, setFeatures] = useState([
         {
             title: 'Global Reach',
             description:
@@ -59,9 +80,9 @@ export default function About() {
             bgColor: 'bg-orange-500',
             shadowColor: 'hover:shadow-orange-500/10',
         },
-    ];
+    ]);
 
-    const timelineItems = [
+    const [timelineItems, setTimelineItems] = useState([
         {
             year: '2016',
             title: 'Foundation in UAE',
@@ -82,9 +103,9 @@ export default function About() {
             title: 'Conglomerate Growth',
             description: 'Operating with over 100+ dedicated employees across multiple business units, powered by innovation and unyielding customer trust.',
         },
-    ];
+    ]);
 
-    const businessDivisions = [
+    const [businessDivisions, setBusinessDivisions] = useState([
         {
             title: 'Logistics & Supply Chain',
             description: 'Comprehensive supply chain management, sea/air cargo freight forwarding, and reliable warehousing services.',
@@ -105,7 +126,31 @@ export default function About() {
             description: 'Direct farm-to-shelf sourcing and distribution of high-quality, hygienic, and fresh agricultural products.',
             icon: <FaHandshake className="text-amber-500 text-xl" />,
         },
-    ];
+    ]);
+
+    useEffect(() => {
+        const fetchDynamicData = async () => {
+            try {
+                const [timelineRes, verticalsRes, strengthsRes] = await Promise.all([
+                    axios.get(getApiUrl("/api/timeline-milestones/")),
+                    axios.get(getApiUrl("/api/business-verticals/")),
+                    axios.get(getApiUrl("/api/strengths/"))
+                ]);
+                if (timelineRes.data && timelineRes.data.length > 0) {
+                    setTimelineItems(timelineRes.data);
+                }
+                if (verticalsRes.data && verticalsRes.data.length > 0) {
+                    setBusinessDivisions(verticalsRes.data);
+                }
+                if (strengthsRes.data && strengthsRes.data.length > 0) {
+                    setFeatures(strengthsRes.data);
+                }
+            } catch (err) {
+                console.error("Error loading dynamic data:", err);
+            }
+        };
+        fetchDynamicData();
+    }, []);
 
     // Fallbacks from backend settings
     const estYear = settings?.established_year || "2016";
@@ -116,6 +161,10 @@ export default function About() {
     const aboutTitle = settings?.about_title || "Delivering Quality, Trust, and Modern Convenience";
     const narrative1 = settings?.about_narrative_1 || "Founded in 2016 in the United Arab Emirates, Leptis Group originated as a strategic expansion of Abreco Freight's logistics and trading operations. Since our inception, we have systematically diversified across sectors including international trading, exports, fresh agricultural produce supply, and modern retail supermarkets.";
     const narrative2 = settings?.about_narrative_2 || "Today, with extensive operations in the UAE and India, we are recognized for our unwavering reliability, global connectivity, and strict adherence to international quality standards. We believe every consumer deserves accessible, high-quality, and modern experiences, which we strive to deliver every day.";
+
+    const founderName = settings?.founder_name || "Ahamed Remil";
+    const founderTitle = settings?.founder_title || "Founder & Chairman";
+    const founderQuote = settings?.founder_quote || "True business leadership isn't just about expansion; it's about building a trusted legacy of innovation, inclusivity, and long-term value for every community we serve.";
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -274,6 +323,57 @@ export default function About() {
                     </div>
                 </section>
 
+                {/* Founder Message Section */}
+                <section className="py-24 px-6 lg:px-16 border-b border-white/5 relative bg-[#0b0f19]">
+                    <div className="max-w-5xl mx-auto">
+                        <div className="bg-[#080b11]/60 rounded-3xl p-8 md:p-12 border border-white/5 flex flex-col md:flex-row items-center gap-10 md:gap-16 shadow-2xl relative overflow-hidden">
+                            {/* Decorative blur */}
+                            <div className="absolute -top-12 -left-12 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+                            <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+                            
+                            {/* Founder Image */}
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6 }}
+                                className="w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border-2 border-amber-500/20 flex-shrink-0 shadow-xl"
+                            >
+                                <img 
+                                    src={getCleanImageUrl(settings?.founder_image_url) || "/team.jpg"} 
+                                    alt={founderName} 
+                                    className="w-full h-full object-cover"
+                                />
+                             </motion.div>
+
+                            {/* Quote Content */}
+                            <motion.div 
+                                initial={{ opacity: 0, y: 15 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6, delay: 0.1 }}
+                                className="flex-grow text-left space-y-6"
+                            >
+                                <span className="text-amber-500 font-bold uppercase text-xs tracking-widest block">
+                                    FOUNDER & CHAIRMAN
+                                </span>
+                                
+                                <blockquote className="text-white text-lg md:text-xl font-bold leading-relaxed italic relative">
+                                    <span className="text-3xl text-amber-500/40 absolute -top-4 -left-4 font-serif">“</span>
+                                    {founderQuote}
+                                    <span className="text-3xl text-amber-500/40 font-serif">”</span>
+                                </blockquote>
+
+                                <div className="border-t border-white/5 pt-4">
+                                    <h4 className="text-white font-extrabold text-base">
+                                        {founderName}
+                                    </h4>
+                                </div>
+                            </motion.div>
+                        </div>
+                    </div>
+                </section>
+
                 {/* Core Divisions */}
                 <section className="py-24 px-6 lg:px-16 bg-[#080b11]">
                     <div className="max-w-7xl mx-auto">
@@ -304,7 +404,7 @@ export default function About() {
                                     className="bg-[#0b0f19] p-8 rounded-3xl border border-white/5 shadow-sm transition-all duration-300 hover:border-white/10 hover:shadow-2xl text-left"
                                 >
                                     <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6">
-                                        {division.icon}
+                                        {renderVerticalIcon(division.icon_class || division.icon)}
                                     </div>
                                     <h3 className="text-lg font-black text-white mb-2.5">
                                         {division.title}
@@ -391,8 +491,8 @@ export default function About() {
                                     className={`bg-[#0b0f19] p-6.5 rounded-3xl border border-white/5 shadow-sm transition-all duration-300 hover:border-white/10 hover:shadow-2xl flex flex-col h-full text-left`}
                                 >
                                     <div className="flex items-center gap-4.5 mb-4">
-                                        <div className={`w-11 h-11 flex items-center justify-center rounded-2xl ${feature.bgColor} text-white shadow-md`}>
-                                            {feature.icon}
+                                        <div className={`w-11 h-11 flex items-center justify-center rounded-2xl ${feature.bg_color || feature.bgColor} text-white shadow-md`}>
+                                            {renderStrengthIcon(feature.icon_class || feature.icon)}
                                         </div>
                                         <h3 className="text-base font-black text-white">{feature.title}</h3>
                                     </div>

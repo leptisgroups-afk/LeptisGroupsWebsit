@@ -6,7 +6,7 @@
 export const getBackendUrl = () => {
   // Set your production backend URL here.
   // Update this to your actual cPanel API domain (e.g. "https://api.leptisgroups.com")
-  const PRODUCTION_BACKEND_URL = "https://api.leptisgroups.com"; 
+  const PRODUCTION_BACKEND_URL = "https://leptisgroups.com"; 
 
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
