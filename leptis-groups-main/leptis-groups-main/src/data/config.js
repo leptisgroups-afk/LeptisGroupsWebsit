@@ -10,10 +10,11 @@ export const getBackendUrl = () => {
 
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
-    // Check if the application is accessed locally or via local network (LAN)
+    // Check if the application is accessed locally, via local network (LAN), or directly via an IP address (e.g. AWS public IP)
     const isLocal = 
       hostname === "localhost" || 
       hostname === "127.0.0.1" || 
+      /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname) ||
       hostname.startsWith("192.168.") || 
       hostname.startsWith("10.") || 
       hostname.startsWith("172.");

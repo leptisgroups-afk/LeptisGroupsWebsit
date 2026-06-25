@@ -34,7 +34,8 @@ CSP_FRAME_ANCESTORS = (
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
-    "http://127.0.0.1:5173"
+    "http://127.0.0.1:5173",
+    "http://16.171.11.162:3000"
 )
 
 # If CSP middleware is used, Django needs this:

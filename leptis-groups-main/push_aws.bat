@@ -11,7 +11,7 @@ cls
 :: Default AWS EC2 Connection Details
 set "PEM_KEY=D:\LeptisGroup\landingweb.pem"
 set "REMOTE_USER=ec2-user"
-set "REMOTE_IP=13.48.43.4"
+set "REMOTE_IP=16.171.11.162"
 set "REMOTE_PATH=/home/ec2-user/leptis-groups"
 
 :: Check if git is installed
