@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import Footer from "@/components/Footer";
 import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
+import { getCleanImageUrl } from "@/data/config";
 
 export async function generateMetadata() {
   const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:8001';
@@ -18,16 +19,16 @@ export async function generateMetadata() {
         description: settings.meta_description || "Leptis Group - Logistics, Global Trading, Supermarkets & Fresh Produce",
         keywords: settings.meta_keywords || "leptis, leptis group, logistics, trading, supermarket, fresh produce",
         icons: {
-          icon: settings.site_logo_url || "/favicon.ico",
-          shortcut: settings.site_logo_url || "/favicon.ico",
-          apple: settings.site_logo_url || "/favicon.ico",
+          icon: getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
+          shortcut: getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
+          apple: getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
         },
         openGraph: {
           title: settings.meta_title || "Leptis Group",
           description: settings.meta_description || "Leptis Group - Logistics, Global Trading, Supermarkets & Fresh Produce",
           images: [
             {
-              url: settings.share_image_url || "/logo.png",
+              url: getCleanImageUrl(settings.share_image_url) || "/logo.png",
               width: 800,
               height: 600,
               alt: "Leptis Group Logo",
