@@ -20,7 +20,7 @@ def get_env_var(name, default=None, required=False):
 SECRET_KEY = get_env_var('DJANGO_SECRET_KEY', 'django-insecure-fallback-key-for-dev')
 DEBUG = get_env_var('DJANGO_DEBUG', '1') == '1'
 
-ALLOWED_HOSTS = [host.strip() for host in get_env_var('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
+ALLOWED_HOSTS = [host.strip() for host in get_env_var('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,16.171.11.162,leptisgroups.com,www.leptisgroups.com').split(',') if host.strip()]
 
 # -------------------
 #  CORS SETTINGS
@@ -28,7 +28,7 @@ ALLOWED_HOSTS = [host.strip() for host in get_env_var('DJANGO_ALLOWED_HOSTS', 'l
 CORS_ALLOW_ALL_ORIGINS = get_env_var('CORS_ALLOW_ALL_ORIGINS', '0') == '1'
 
 CORS_ALLOW_CREDENTIALS = get_env_var('CORS_ALLOW_CREDENTIALS', '1') == '1'
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in get_env_var('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',') if origin.strip()]
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in get_env_var('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://leptisgroups.com,https://www.leptisgroups.com').split(',') if origin.strip()]
 
 
 # -------------------
