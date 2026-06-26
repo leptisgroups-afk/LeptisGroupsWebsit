@@ -4,9 +4,8 @@
  * and localhost (for server-side fetches or default local work).
  */
 export const getBackendUrl = () => {
-  // Set your production backend URL here.
-  // Update this to your actual cPanel API domain (e.g. "https://api.leptisgroups.com")
-  const PRODUCTION_BACKEND_URL = "https://leptisgroups.com"; 
+  // Set your production backend URL here via environment variable.
+  const PRODUCTION_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://leptisgroups.com";
 
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
@@ -14,10 +13,9 @@ export const getBackendUrl = () => {
     const isLocal = 
       hostname === "localhost" || 
       hostname === "127.0.0.1" || 
-      /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname) ||
       hostname.startsWith("192.168.") || 
       hostname.startsWith("10.") || 
-      hostname.startsWith("172.");
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
 
     if (isLocal) {
       return `http://${hostname}:8001`;

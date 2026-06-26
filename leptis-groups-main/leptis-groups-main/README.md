@@ -20,6 +20,20 @@ You can start editing the page by modifying `app/page.js`. The page auto-updates
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## AWS Deployment Environment
+
+Create a `.env` file from `.env.example` and set the production backend URL for AWS.
+
+Example values:
+
+```env
+BACKEND_URL=http://16.171.11.162:8001
+NEXT_PUBLIC_BACKEND_URL=http://16.171.11.162:8001
+NODE_ENV=production
+```
+
+Ensure the backend is running and reachable on the AWS host before deploying.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

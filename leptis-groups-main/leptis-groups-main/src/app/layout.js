@@ -5,8 +5,9 @@ import Footer from "@/components/Footer";
 import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
 
 export async function generateMetadata() {
+  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:8001';
   try {
-    const res = await fetch("http://127.0.0.1:8001/api/site-settings/", {
+    const res = await fetch(`${backendUrl}/api/site-settings/`, {
       next: { revalidate: 60 } // cache settings for 60 seconds
     });
     if (res.ok) {

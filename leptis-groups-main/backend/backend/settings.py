@@ -4,20 +4,31 @@ Django settings for backend project.
 
 import os
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
-SECRET_KEY = 'django-insecure-4jgl72gv88c7p7$%*h7bpgakv_lz4ua0y+=(0w))sw--1w7#(t'
-DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+def get_env_var(name, default=None, required=False):
+    value = os.environ.get(name, default)
+    if required and not value:
+        raise ImproperlyConfigured(f"The environment variable {name} is required.")
+    return value
+
+SECRET_KEY = get_env_var('DJANGO_SECRET_KEY', 'django-insecure-fallback-key-for-dev')
+DEBUG = get_env_var('DJANGO_DEBUG', '1') == '1'
+
+ALLOWED_HOSTS = [host.strip() for host in get_env_var('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
 
 # -------------------
 #  CORS SETTINGS
 # -------------------
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = get_env_var('CORS_ALLOW_ALL_ORIGINS', '0') == '1'
 
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = get_env_var('CORS_ALLOW_CREDENTIALS', '1') == '1'
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in get_env_var('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',') if origin.strip()]
 
 
 # -------------------
@@ -174,9 +185,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # EMAIL SETTINGS
 # -------------------
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'leptisgroupsit@gmail.com'
-EMAIL_HOST_PASSWORD = 'tncd yjub ajaf vtbf'
-DEFAULT_FROM_EMAIL = 'leptisgroupsit@gmail.com'
+EMAIL_HOST = get_env_var('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(get_env_var('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = get_env_var('EMAIL_USE_TLS', '1') == '1'
+EMAIL_HOST_USER = get_env_var('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = get_env_var('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = get_env_var('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
