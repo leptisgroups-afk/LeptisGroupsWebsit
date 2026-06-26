@@ -4,30 +4,15 @@
  * and localhost (for server-side fetches or default local work).
  */
 export const getBackendUrl = () => {
-  // Set your production backend URL here via environment variable.
-  const PRODUCTION_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://leptisgroups.com";
-
+  // If we are in the browser (client-side), we use relative paths.
+  // Next.js will proxy requests to the backend via rewrites configured in next.config.mjs.
   if (typeof window !== "undefined") {
-    const hostname = window.location.hostname;
-    // Check if the application is accessed locally, via local network (LAN), or directly via an IP address (e.g. AWS public IP)
-    const isLocal = 
-      hostname === "localhost" || 
-      hostname === "127.0.0.1" || 
-      hostname.startsWith("192.168.") || 
-      hostname.startsWith("10.") || 
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
-
-    if (isLocal) {
-      return `http://${hostname}:8001`;
-    }
-    return PRODUCTION_BACKEND_URL;
+    return "";
   }
   
-  // Fallback for Server-Side Rendering (SSR)
-  if (process.env.NODE_ENV === "production") {
-    return PRODUCTION_BACKEND_URL;
-  }
-  return "http://127.0.0.1:8001";
+  // Fallback for Server-Side Rendering (SSR) and build time.
+  // Next.js server-side fetches will go directly to the local backend port.
+  return process.env.BACKEND_URL || "http://127.0.0.1:8001";
 };
 
 export const getApiUrl = (path) => {
@@ -36,20 +21,24 @@ export const getApiUrl = (path) => {
 };
 
 /**
- * Ensures image and PDF URLs fetched from the backend use the correct LAN domain name/IP.
- * This fixes image/media rendering on external devices connected to the same network.
+ * Ensures image and PDF URLs fetched from the backend use relative paths.
+ * Next.js proxies these to the Django backend using next.config.mjs rewrites,
+ * resolving images correctly in all environments (localhost, LAN, production AWS).
  */
 export const getCleanImageUrl = (url) => {
   if (!url || typeof url !== "string") return url;
-  const backendUrl = getBackendUrl();
   
-  // Handle relative media paths
+  // If it's already a relative path, return it as-is
   if (url.startsWith("/media/")) {
-    return `${backendUrl}${url}`;
+    return url;
   }
   
-  // Rewrite loopback/localhost references to the client's current LAN host on port 8001
-  return url
-    .replace("http://127.0.0.1:8001", backendUrl)
-    .replace("http://localhost:8001", backendUrl);
+  // If it contains /media/, extract the relative path starting from /media/
+  const mediaIndex = url.indexOf("/media/");
+  if (mediaIndex !== -1) {
+    return url.substring(mediaIndex);
+  }
+  
+  return url;
 };
+
