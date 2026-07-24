@@ -364,7 +364,7 @@ echo =======================================================================
 echo.
 echo Running "npm run build" in frontend...
 cd leptis-groups-main\leptis-groups-main
-call npm run build
+call npm.cmd run build
 set BUILD_ERR=%errorlevel%
 cd ..\..
 echo.

@@ -169,6 +169,7 @@ class SiteSettings(models.Model):
     brands_bg = models.ImageField(upload_to="settings/", blank=True, null=True)
     site_logo = models.ImageField(upload_to="settings/", blank=True, null=True)
     share_image = models.ImageField(upload_to="settings/", blank=True, null=True)
+    favicon = models.ImageField(upload_to="settings/", blank=True, null=True)
 
     # SEO & Sharing Metadata
     meta_title = models.CharField(max_length=255, default="Leptis Group")

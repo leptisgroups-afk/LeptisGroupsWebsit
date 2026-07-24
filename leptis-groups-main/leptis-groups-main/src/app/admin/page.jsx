@@ -125,6 +125,7 @@ export default function AdminDashboard() {
         founder_image: null,
         site_logo: null,
         share_image: null,
+        favicon: null,
     });
 
     // Image Input Refs (to clear them)
@@ -138,6 +139,7 @@ export default function AdminDashboard() {
         founder_image: useRef(null),
         site_logo: useRef(null),
         share_image: useRef(null),
+        favicon: useRef(null),
     };
 
     // Offers CRUD State
@@ -428,6 +430,7 @@ export default function AdminDashboard() {
                 updateImageSpecs("founder_image", getCleanImageUrl(settRes.founder_image_url) || "");
                 updateImageSpecs("site_logo", getCleanImageUrl(settRes.site_logo_url) || "/logo.png");
                 updateImageSpecs("share_image", getCleanImageUrl(settRes.share_image_url) || "/logo.png");
+                updateImageSpecs("favicon", getCleanImageUrl(settRes.favicon_url) || "/favicon.ico");
             }
             setApplications(appRes);
             setMessages(msgRes);
@@ -634,6 +637,7 @@ export default function AdminDashboard() {
                 key !== 'founder_image_url' &&
                 key !== 'site_logo_url' &&
                 key !== 'share_image_url' &&
+                key !== 'favicon_url' &&
                 key !== 'hero_bg' && 
                 key !== 'about_team_img' && 
                 key !== 'home_about_img' && 
@@ -642,7 +646,8 @@ export default function AdminDashboard() {
                 key !== 'brands_bg' &&
                 key !== 'founder_image' &&
                 key !== 'site_logo' &&
-                key !== 'share_image'
+                key !== 'share_image' &&
+                key !== 'favicon'
             ) {
                 data.append(key, settingsForm[key] !== null ? settingsForm[key] : "");
             }
@@ -670,6 +675,7 @@ export default function AdminDashboard() {
             updateImageSpecs("founder_image", getCleanImageUrl(res.data.founder_image_url) || "");
             updateImageSpecs("site_logo", getCleanImageUrl(res.data.site_logo_url) || "/logo.png");
             updateImageSpecs("share_image", getCleanImageUrl(res.data.share_image_url) || "/logo.png");
+            updateImageSpecs("favicon", getCleanImageUrl(res.data.favicon_url) || "/favicon.ico");
             
             setSelectedImageSpecs({});
             setSettingImages({
@@ -682,6 +688,7 @@ export default function AdminDashboard() {
                 founder_image: null,
                 site_logo: null,
                 share_image: null,
+                favicon: null,
             });
             Object.keys(fileRefs).forEach(key => {
                 if (fileRefs[key].current) fileRefs[key].current.value = "";
@@ -3941,6 +3948,34 @@ export default function AdminDashboard() {
                                     />
                                     <p className="text-[10px] text-slate-500 font-semibold mt-1.5">Recommended: 800x600 px or larger.</p>
                                     {renderSelectedImageSpecs("share_image", 2048)}
+                                </div>
+                            </div>
+
+                            {/* Item 10: Favicon */}
+                            <div className="border border-slate-800/80 p-5 rounded-2xl bg-slate-950/30 flex flex-col sm:flex-row gap-5 items-center">
+                                <div className="flex flex-col items-center flex-shrink-0">
+                                    <div className="w-24 h-24 rounded-xl bg-slate-900 overflow-hidden border border-slate-800 flex items-center justify-center p-2">
+                                        <img src={getCleanImageUrl(settingsForm.favicon_url) || "/favicon.ico"} alt="favicon" className="max-w-full max-h-full object-contain" />
+                                    </div>
+                                    {currentImageSpecs.favicon && (
+                                        <div className="flex flex-col items-center text-[9px] font-bold text-slate-400 bg-slate-950 border border-slate-850 px-2 py-0.5 rounded gap-0.5 mt-2 w-24 text-center">
+                                            <span>{currentImageSpecs.favicon.size}</span>
+                                            <span className="text-blue-400 font-extrabold">{currentImageSpecs.favicon.width}x{currentImageSpecs.favicon.height}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-left w-full">
+                                    <h5 className="font-bold text-white text-sm mb-1.5">Website Favicon (.ico / .png)</h5>
+                                    <input 
+                                        type="file" 
+                                        name="favicon" 
+                                        accept="image/x-icon,image/png,image/jpeg"
+                                        onChange={handleImageChange}
+                                        ref={fileRefs.favicon}
+                                        className="text-xs w-full text-slate-455 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20 cursor-pointer"
+                                    />
+                                    <p className="text-[10px] text-slate-500 font-semibold mt-1.5">Recommended: 32x32 px .ico or .png format.</p>
+                                    {renderSelectedImageSpecs("favicon", 2048)}
                                 </div>
                             </div>
                         </div>

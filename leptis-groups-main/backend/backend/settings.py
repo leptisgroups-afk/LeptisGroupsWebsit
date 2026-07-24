@@ -190,4 +190,5 @@ EMAIL_PORT = int(get_env_var('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = get_env_var('EMAIL_USE_TLS', '1') == '1'
 EMAIL_HOST_USER = get_env_var('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = get_env_var('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = get_env_var('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+DEFAULT_FROM_EMAIL = get_env_var('DEFAULT_FROM_EMAIL', '') or get_env_var('EMAIL_HOST_USER', '') or 'leptisgroupsit@gmail.com'
+

@@ -245,9 +245,20 @@ Subject: {msg.subject}
 Message:
 {msg.message}
 """
-        recipient = ["leptisgroupsit@gmail.com"]
+        # Get recipient email dynamically from SiteSettings
         try:
-            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipient)
+            settings_obj = SiteSettings.objects.first()
+            if settings_obj and settings_obj.contact_email:
+                recipient = [settings_obj.contact_email]
+            elif settings_obj and settings_obj.careers_email_recipient:
+                recipient = [settings_obj.careers_email_recipient]
+            else:
+                recipient = ["leptisgroupsit@gmail.com"]
+        except Exception:
+            recipient = ["leptisgroupsit@gmail.com"]
+
+        try:
+            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL or "leptisgroupsit@gmail.com", recipient)
         except Exception as e:
             print("Email sending failed:", e)
 

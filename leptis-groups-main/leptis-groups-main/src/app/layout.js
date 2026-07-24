@@ -4,6 +4,13 @@ import AnnouncementBar from "@/components/AnnouncementBar";
 import Footer from "@/components/Footer";
 import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
 import { getCleanImageUrl } from "@/data/config";
+import { Poppins } from "next/font/google";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
 
 export async function generateMetadata() {
   const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:8001';
@@ -19,9 +26,9 @@ export async function generateMetadata() {
         description: settings.meta_description || "Leptis Group - Logistics, Global Trading, Supermarkets & Fresh Produce",
         keywords: settings.meta_keywords || "leptis, leptis group, logistics, trading, supermarket, fresh produce",
         icons: {
-          icon: getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
-          shortcut: getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
-          apple: getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
+          icon: getCleanImageUrl(settings.favicon_url) || getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
+          shortcut: getCleanImageUrl(settings.favicon_url) || getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
+          apple: getCleanImageUrl(settings.favicon_url) || getCleanImageUrl(settings.site_logo_url) || "/favicon.ico",
         },
         openGraph: {
           title: settings.meta_title || "Leptis Group",
@@ -47,9 +54,9 @@ export async function generateMetadata() {
     title: "Leptis Group",
     description: "Leptis Group - Logistics, Global Trading, Supermarkets & Fresh Produce",
     icons: {
-      icon: "/logo.png",
-      shortcut: "/logo.png",
-      apple: "/logo.png",
+      icon: "/favicon.ico",
+      shortcut: "/favicon.ico",
+      apple: "/favicon.ico",
     },
     openGraph: {
       title: "Leptis Group",
@@ -68,12 +75,7 @@ export async function generateMetadata() {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" className={poppins.className}>
       <body className="font-sans antialiased">
         <SiteSettingsProvider>
           <AnnouncementBar />
@@ -85,3 +87,4 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+

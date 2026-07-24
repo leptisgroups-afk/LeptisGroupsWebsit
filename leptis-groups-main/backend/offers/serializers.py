@@ -90,6 +90,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     founder_image_url = serializers.SerializerMethodField()
     site_logo_url = serializers.SerializerMethodField()
     share_image_url = serializers.SerializerMethodField()
+    favicon_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SiteSettings
@@ -147,6 +148,12 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         if obj.share_image:
             request = self.context.get("request")
             return request.build_absolute_uri(obj.share_image.url) if request else obj.share_image.url
+        return None
+
+    def get_favicon_url(self, obj):
+        if obj.favicon:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.favicon.url) if request else obj.favicon.url
         return None
 
 
