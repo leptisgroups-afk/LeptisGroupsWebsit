@@ -74,10 +74,10 @@ echo =======================================================================
 echo  DEPLOYING CODE TO AWS VIA SCP & TARBALL
 echo =======================================================================
 echo.
-echo [1/4] Creating local deployment tarball...
+echo [1/4] Creating local deployment tarball (excluding database and media)...
 if exist deploy.tar.gz del deploy.tar.gz
 
-tar --exclude="leptis-groups-main/env" --exclude="leptis-groups-main/leptis-groups-main/node_modules" --exclude="leptis-groups-main/leptis-groups-main/.next" --exclude=".git" -czf deploy.tar.gz leptis-groups-main
+tar --exclude="leptis-groups-main/env" --exclude="leptis-groups-main/backend/env" --exclude="leptis-groups-main/backend/db.sqlite3" --exclude="leptis-groups-main/backend/media" --exclude="leptis-groups-main/leptis-groups-main/node_modules" --exclude="leptis-groups-main/leptis-groups-main/.next" --exclude=".git" -czf deploy.tar.gz leptis-groups-main
 
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to create local tarball.
@@ -129,10 +129,10 @@ echo =======================================================================
 echo  FULL DEPLOYMENT TO AWS (Code + Database + Media + Restart)
 echo =======================================================================
 echo.
-echo [1/5] Creating local deployment tarball...
+echo [1/5] Creating local deployment tarball (excluding database and media)...
 if exist deploy.tar.gz del deploy.tar.gz
 
-tar --exclude="leptis-groups-main/env" --exclude="leptis-groups-main/leptis-groups-main/node_modules" --exclude="leptis-groups-main/leptis-groups-main/.next" --exclude=".git" -czf deploy.tar.gz leptis-groups-main
+tar --exclude="leptis-groups-main/env" --exclude="leptis-groups-main/backend/env" --exclude="leptis-groups-main/backend/db.sqlite3" --exclude="leptis-groups-main/backend/media" --exclude="leptis-groups-main/leptis-groups-main/node_modules" --exclude="leptis-groups-main/leptis-groups-main/.next" --exclude=".git" -czf deploy.tar.gz leptis-groups-main
 
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to create local tarball.
