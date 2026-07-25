@@ -1,50 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Leptis Group - Next.js Frontend App
 
-## Getting Started
+This is the Next.js frontend application for **Leptis Group**, built with Next.js 15 (Turbopack), React 19, Tailwind CSS v4, Framer Motion, and GSAP.
+
+---
+
+## 📦 Package & Dependencies Overview
+
+This frontend project relies on **13 npm packages**:
+
+### Production Dependencies (8 Packages)
+- **`next`** (`^15.5.19`): Framework for SSR, static generation, metadata & routing.
+- **`react`** (`19.1.0`): Core React library.
+- **`react-dom`** (`19.1.0`): DOM rendering engine.
+- **`axios`** (`^1.13.2`): HTTP client for Django REST API calls.
+- **`framer-motion`** (`^12.40.0`): Motion & animation library.
+- **`gsap`** (`^3.15.0`): GreenSock timeline animations.
+- **`react-icons`** (`^5.5.0`): Icon collection.
+- **`@headlessui/react`** (`^2.2.9`): Accessible UI components.
+
+### Development Dependencies (5 Packages)
+- **`tailwindcss`** (`^4`): Utility-first CSS framework.
+- **`@tailwindcss/postcss`** (`^4`): PostCSS plugin for Tailwind CSS v4.
+- **`eslint`** (`^9`): Linter.
+- **`eslint-config-next`** (`15.5.4`): Next.js ESLint rules.
+- **`@eslint/eslintrc`** (`^3`): ESLint legacy configuration handler.
+
+For complete root project dependencies (including Django Python packages and AWS infrastructure items), see the main [`README.md`](../README.md).
+
+---
+
+## 🚀 Getting Started
 
 First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 🛠 Local & Production Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To run a production build check locally:
 
-## AWS Deployment Environment
-
-Create a `.env` file from `.env.example` and set the production backend URL for AWS.
-
-Example values:
-
-```env
-BACKEND_URL=http://16.171.11.162:8001
-NEXT_PUBLIC_BACKEND_URL=http://16.171.11.162:8001
-NODE_ENV=production
+```bash
+npm run build
 ```
 
-Ensure the backend is running and reachable on the AWS host before deploying.
+## AWS Deployment Configuration
 
-## Learn More
+In production (AWS EC2), Next.js proxies requests to the backend:
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```env
+BACKEND_URL=http://127.0.0.1:8001
+```
